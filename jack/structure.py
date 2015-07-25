@@ -24,6 +24,7 @@ from config import (
     resource_registry,
     session_duration,
     getapiattr,
+    get_resource,
     )
 from tools import exec_function, func_params
 
