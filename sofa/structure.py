@@ -244,6 +244,11 @@ class APIValidator(object):
         obj.validate = new_validator
         return obj
 
+    def __init__(self, func=None):
+        # If func is specified, we will use it as the validation function
+        if func:
+            self.validate = func
+
 
 class APIReader(object):
     def read(self, value):

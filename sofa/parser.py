@@ -1,6 +1,7 @@
 import yaml
+import inspect
 
-from structure import APIAttribute
+from structure import APIAttribute, APIValidator
 from config import get_resource
 from validators import (
     NumericIdValidator,
@@ -150,11 +151,11 @@ def get_resource_info(path):
                                                                       'ZipCodeValidator'):
                             validator = eval(attr[name]['validator'])
                         else:
-                            try:
-                                validator = getattr(resource_class, attr[name]['validator'])
-                            except KeyError:
-                                raise ConfigurationException('Validator %r not found' \
-                                                % attr[name]['validator'])
+                            validator = get_handler_func(resource_class, attr[name]['validator'])
+                            if isinstance(validator, basestring):
+                                validator = eval(validator)
+                            if not inspect.isclass(validator):
+                                validator = APIValidator(validator)
                     else:
                         validator = None
                     # Get read/write info
