@@ -48,4 +48,4 @@ class Root(object):
         else:
             raise ResourceException(status_code=404, error_id="v0-404",
                                     message='The root resource type ' + key + ' could not be found. Available ' \
-                                        + 'root resource types are: %s' % ', '.join(root_collections().keys()))
+                                        + 'root resource types are: %s' % ', '.join(root_collections()))
