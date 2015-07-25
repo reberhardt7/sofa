@@ -13,7 +13,7 @@ class DateReader(APIReader):
         return datetime.strftime(value, '%Y-%m-%d') if value else value
 
 
-class DateTimeReader(APIReader):
+class DatetimeReader(APIReader):
     
     def read(self, value):
         return datetime.strftime(value, "%Y-%m-%dT%H:%M:%SZ") if value else value

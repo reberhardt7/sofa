@@ -15,7 +15,7 @@ from validators import (
     )
 from readers import (
     DateReader,
-    DateTimeReader,
+    DatetimeReader,
     )
 from exceptions import (
     ConfigurationException,

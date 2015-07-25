@@ -24,7 +24,7 @@ from validators import (
     )
 from readers import (
     DateReader,
-    DateTimeReader,
+    DatetimeReader,
     )
 from config import (
     load_api_config,
