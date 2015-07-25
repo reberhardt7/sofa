@@ -22,7 +22,7 @@ class Root(object):
             # users with `user_type` exactly equal to "admin" and `name`
             # containing "Ryan."
             querystring_re = re.compile(r'^(.*?)(?<!\\)(:|=|<=|>=|<|>)(.*?)$')
-            querystrings = re.split(r'(?<!\\),', self.request.GET['q']) if 'q' in self.request.GET else []
+            querystrings = re.split(r'(?<!\\),', self.request.GET['q']) if 'q' in self.request.GET and self.request.GET['q'] else []
             filters = []
             for q in querystrings:
                 if not querystring_re.match(q):
