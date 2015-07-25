@@ -1,3 +1,3 @@
-Jack was written and is primarily maintained by Ryan Eberhardt
+Sofa was written and is primarily maintained by Ryan Eberhardt
 <ryan@reberhardt.com>. Development of an initial version was supported by Navier
 Corporation in 2014.

@@ -2,7 +2,7 @@ import os
 import re
 import sys
 
-from jack.parser import get_resource_info
+from sofa.parser import get_resource_info
 
 def snake_to_camel(str):
     return str.split('_')[0] + "".join(x.title() for x in str.split('_')[1:])
@@ -102,7 +102,7 @@ def main(argv=sys.argv):
     resources = get_resource_info(argv[1])['api']
     main_module_name = argv[2]
     js_file = ('/**********************************************************\n'
-               '*                JACK ANGULAR API FACTORIES               *\n'
+               '*                SOFA ANGULAR API FACTORIES               *\n'
                '* These factories are auto-generated. Do not modify them. *\n'
                '**********************************************************/\n\n')
     for cls, info in resources.iteritems():

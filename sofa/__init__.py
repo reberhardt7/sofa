@@ -43,23 +43,23 @@ from tree import Root as TraversalRoot
 def includeme(config):
     from structure import ContextPredicate
     config.add_view_predicate('api_context', ContextPredicate)
-    config.add_view('jack.views.nopath_view', context=TraversalRoot, renderer='json')
-    config.add_view('jack.views.updated_view', context=ResourceUpdated, renderer='json')
-    config.add_view('jack.views.CollectionViews', attr='get', context=APICollection,
+    config.add_view('sofa.views.nopath_view', context=TraversalRoot, renderer='json')
+    config.add_view('sofa.views.updated_view', context=ResourceUpdated, renderer='json')
+    config.add_view('sofa.views.CollectionViews', attr='get', context=APICollection,
                     renderer='json', request_method='GET', api_context='list')
-    config.add_view('jack.views.CollectionViews', attr='post', context=APICollection,
+    config.add_view('sofa.views.CollectionViews', attr='post', context=APICollection,
                     renderer='json', request_method='POST', api_context='create')
-    config.add_view('jack.views.CollectionViews', attr='other_verb', context=APICollection,
+    config.add_view('sofa.views.CollectionViews', attr='other_verb', context=APICollection,
                     renderer='json')
-    config.add_view('jack.views.ResourceViews', attr='get', context=APIResource,
+    config.add_view('sofa.views.ResourceViews', attr='get', context=APIResource,
                     renderer='json', request_method='GET', api_context='read')
-    config.add_view('jack.views.ResourceViews', attr='put', context=APIResource,
+    config.add_view('sofa.views.ResourceViews', attr='put', context=APIResource,
                     renderer='json', request_method='PUT', api_context='update')
-    config.add_view('jack.views.ResourceViews', attr='delete', context=APIResource,
+    config.add_view('sofa.views.ResourceViews', attr='delete', context=APIResource,
                     renderer='json', request_method='DELETE', api_context='delete')
-    config.add_view('jack.views.ResourceViews', attr='other_verb', context=APIResource,
+    config.add_view('sofa.views.ResourceViews', attr='other_verb', context=APIResource,
                     renderer='json')
-    config.add_view('jack.views.resource_exception_view', context=ResourceException,
+    config.add_view('sofa.views.resource_exception_view', context=ResourceException,
                     renderer='json')
 
 def configure(sqla_session=None, api_config_path=None, session_lookup_func=None):

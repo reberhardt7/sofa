@@ -14,17 +14,20 @@ requires = [
     'pyyaml',
     ]
 
-setup(name='jack',
+setup(name='sofa',
       version='0.0',
-      description='Python API framework',
+      description='A lightweight REST API framework',
       author='Ryan Eberhardt',
       author_email='ryan@reberhardt.com',
-      packages=['jack', 'jack.scripts'],
+      url='https://github.com/reberhardt/sofa',
+      download_url='https://github.com/reberhardt/sofa/tarball/0.0',
+      keywords=['rest', 'api'],
+      packages=['sofa', 'sofa.scripts'],
       install_requires=requires,
       entry_points="""\
       [paste.app_factory]
-      main = jack:main
+      main = sofa:main
       [console_scripts]
-      jack = jack.scripts.js:main
+      sofa = sofa.scripts.js:main
       """
      )
