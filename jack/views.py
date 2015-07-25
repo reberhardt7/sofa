@@ -12,10 +12,11 @@ from structure import APICollection, APIResource
 # Tell the user they need to specify a resource
 def nopath_view(request):
     raise ResourceException(status_code=404, error_id="v0-404",
-                            message='You must specify a root resource type ' + \
-                                    '(e.g. /players). Available ' + \
-                                    'resource types are: %s' % ', ' \
-                                    .join(root_collections()))
+                            message=('You must specify a root resource type '
+                                     '(e.g. /{}). Available '
+                                     'resource types are: {}').format(
+                                     root_collections()[0] if root_collections() else 'resource',
+                                     ','.join(root_collections())))
 
 def updated_view(request):
     return request.context
