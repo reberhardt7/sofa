@@ -10,10 +10,12 @@ from inspect import isclass
 from datetime import datetime, timedelta
 
 from pyramid.httpexceptions import HTTPNotModified
+from pyramid.threadlocal import get_current_request
 
 from sqlalchemy import Column, Boolean, DateTime
 from sqlalchemy.sql.expression import func
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy import orm
 
 from responses import ResourceUpdated, ResourceException
 
@@ -267,6 +269,16 @@ class APIResource(object):
     deleted_at = Column(DateTime)
 
     __request__ = None    # Pyramid request object should be set by traversal parent
+
+    # re 6/18/15 this is a really ugly hack to set the __request__ attribute
+    # when the object wasn't produced via traversal, but was instead loaded by
+    # SQLAlchemy and is now being used in the API. In this case, there would be
+    # no parent that we have control over to set __request__, but the resource
+    # might still try to use that... Pyramid strongly discourages use of
+    # get_current_request, so a different solution would be better
+    @orm.reconstructor
+    def load_request(self):
+        self.__request__ = get_current_request()
 
     @classmethod
     def primary_key_name(cls):
