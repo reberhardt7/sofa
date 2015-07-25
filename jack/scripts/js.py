@@ -110,11 +110,14 @@ def main(argv=sys.argv):
         if info['list']:
             verb = 'list'
             method = 'GET'
-            url = 'root + "%s"' % info['list']['url']
+            url = 'root + "%s"' % info['list']['url'] \
+                + '\n + (options ? ("?" + Object.keys(options).map(function(val) {' \
+                + '\n             return val+"="+options[val];' \
+                + '\n         }).join("&")) : "")'
             factories.append({'verb': verb,
                               'method': method,
                               'url': url,
-                              'func_params': (),
+                              'func_params': ['options'],
                               'auth': info['list']['auth']})
         if info['create']:
             verb = 'create'+cls
@@ -134,10 +137,13 @@ def main(argv=sys.argv):
                            if segment.startswith(':') ]
             for param in url_params:
                 url += '.replace(":%s", %s)' % (param, snake_to_camel(param))
+            url += '\n + (options ? ("?" + Object.keys(options).map(function(val) {' \
+                 + '\n             return val+"="+options[val];' \
+                 + '\n         }).join("&")) : "")'
             factories.append({'verb': verb,
                               'method': method,
                               'url': url,
-                              'func_params': [snake_to_camel(param) for param in url_params],
+                              'func_params': [snake_to_camel(param) for param in url_params] + ['options'],
                               'auth': info['read']['auth']})
             # Create getter functions for children
             for key, child in info['children'].iteritems():
