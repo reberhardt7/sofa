@@ -6,6 +6,7 @@ from structure import (
     APIValidator,
     APIResource,
     APICollection,
+    APISession,
     VirtualResourceRegistry,
     VirtualResource,
     resource_registry,

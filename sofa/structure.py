@@ -847,7 +847,7 @@ class VirtualCollection(object):
         return target
 
 
-class APISession(APIResource):
+class APISession(object):
     @property
     def expires(self):
         return self.updated_at + timedelta(seconds=session_duration())

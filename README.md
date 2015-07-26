@@ -9,6 +9,7 @@ A simple Python REST API framework
 * [Readers/Writers](#readerswriters)
 * [How does it handle requests?](#how-does-it-handle-requests)
 * [Controlling authorization](#controlling-authorization)
+* [Sessions](#sessions)
 * [Search queries](#search-queries)
 * [Generating AngularJS factories](#generating-angularjs-factories)
 * [Potential upcoming features](#potential-upcoming-features)
@@ -609,6 +610,165 @@ instance. In this case, "delete" is only used on resource instances, so `target`
 will be the instance subject to deletion. Our lambda authorization function
 ensures the caller ID is the same as the banana ID, effectively ensuring the
 only thing that can delete a Banana is itself. (Oh dear.)
+
+Sessions
+--------
+
+Session objects are used to track who is "logged in". REST APIs are stateless
+and use no cookies, so "logging into" REST API is different from logging into a
+website, where you provide your credentials and the website remembers you.
+Instead, you provide your credentials and the API returns a token that you
+supply in all subsequent requests in order to provide authorization.
+
+More concretely, Sofa uses a Session resource (similar to any other resource) to
+manage authentication and authorization. A valid username and password are
+required to create a Session, and then that Session's ID is presented as a token
+in subsequent requests.
+
+A Session inherits `APISession` and has an attribute `user_id` with the ID of
+the API caller to whom a session belongs. This attribute is made available to
+auth functions via the AuthContext (see **Controlling authorization** above). A
+Session may also contain other attributes and properties as you desire. A sample
+Session is as follows:
+
+```
+from sofa import APIResource, APISession, ResourceException
+
+
+class Session(Base, APIResource, APISession):
+    __tablename__ = 'sessions'
+
+    id = Column(String(32), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship('User')
+    ip_address = Column(String(15))
+
+    @property
+    def username(self):
+        return self.user.username
+
+    def __init__(self, username, password):
+        target_user = DBSession.query(User).filter(User.username==username).first()
+        if not target_user:
+            raise ResourceException(400, 'bad_username',
+                                    'The username "%s" is invalid.' % username)
+        if not target_user.check_password(password):
+            raise ResourceException(400, 'bad_password',
+                                    'The password is invalid.')
+        self.user_id = target_user.id
+        self.ip_address = self.__request__.remote_addr
+        # Generate a unique Session ID
+        self.id = os.urandom(16).encode('hex')
+        while DBSession.query(Session).get(self.id):
+            self.id = os.urandom(16).encode('hex')
+
+    def __repr__(self):
+        return "<Session(id=%r, user_id=%r)>" % (self.id, self.user_id)
+```
+
+A Session ID may be any unique key, but we recommend using secure random
+strings, as the Session ID is used to authenticate future requests on behalf of
+a user, and any attacker who has compromised a Session ID may masquerade as a
+user. In this case, we have chosen to also log the caller's IP address with the
+session. We create a `username` property so that the username (which, in our
+case, is distinct from `users.id`) may be returned in API queries and easily
+referenced in authorization functions.
+
+The Session is a resource, just like any other, and must be registered in
+`api.yaml`:
+
+```
+resources:
+    sessions:
+        class: Session
+        attrs:
+            - id
+            - user_id
+            - username
+            - password
+                readable: false
+            - user_type
+            - expires
+                reader: DatetimeReader
+        create:
+            required_fields:
+                - username
+                - password
+        read:
+        delete:
+```
+
+Note that we have neither a `list` method nor an `update` method declared, as
+these would be a security risk in this situation. Also, there are no
+authorization restrictions defined. Anyone must be able to access `create`,
+since we want anyone to be able to log in, and there is no point in restricting
+access to `read` and `delete`, because if a caller has a Session ID that would
+be required to specify a resource to call those methods on in the first place,
+then he/she would be able to provide that Session ID as authorization and call
+those methods regardless. Finally, note that even though the `Session` class has
+no `password` attribute, it is still listed under `attrs` (albeit as `readable:
+False`). This is because any field listed under `required_fields` must be a
+known attribute.
+
+The final step in using sessions is to register a Session lookup function. This
+must take a Session ID that was provided in the API request Authorization header
+and return a Session object (which is provided in AuthContexts, so that
+authorization functions can access the current Session). Define the following
+function (in the models module, below the Session class declaration, or
+somewhere else, if you prefer):
+
+```
+def get_session(session_id):
+    return DBSession.query(Session).get(session_id)
+```
+
+Then, in the root `__init__.py`, add a `session_lookup_func` parameter to the
+`sofa.configure` call:
+
+```
+from models import get_session
+
+def main(global_config, **settings):
+    ...
+    sofa.configure(sqla_session=DBSession,
+                   api_config_path=settings['api_config_location'],
+                   session_lookup_func=get_session)
+    ...
+```
+
+Now, in order to authenticate, a caller should POST to `/sessions`:
+
+```
+$ curl -s -X POST -F "username=foobar" -F "password=barbaz" 'http://localhost:6543/sessions' | python -m json.tool
+{
+    "message": "Resource created.",
+    "resourceID": "7f6945f490e7b6ab3b9caa702d7ef95e",
+    "statusCode": 201
+}
+```
+
+Now, the caller can use that resourceID in the Authorization header for subsequent calls:
+
+```
+$ curl -s -X GET 'http://localhost:6543/users/1' | python -m json.tool
+{
+    "errorID": "unauthorized_caller",
+    "message": "You do not have sufficient privileges to perform this action.",
+    "statusCode": 403
+}
+
+$ curl -s -X GET -H "Authorization: token 7f6945f490e7b6ab3b9caa702d7ef95e" 'http://localhost:6543/users/1' | python -m json.tool
+{
+    "active": true,
+    "created_at": "2015-07-18T03:28:57Z",
+    "deleted_at": null,
+    "email": "no@noemail.noemail",
+    "id": 1,
+    "name": "Root",
+    "updated_at": "2015-07-18T03:28:57Z",
+    "username": "root"
+}
+```
 
 Search queries
 --------------
