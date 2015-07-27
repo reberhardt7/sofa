@@ -945,12 +945,15 @@ class AuthContext(object):
             self.session = None
             self.caller_id = None
             self.caller_type = None
-            #self.user_type = None
+            self.user_type = None
         else:
             self.session = check_access_token(request)
             self.caller_id = self.session.user_id
             self.caller_type = 'user'
-            #self.user_type = self.session.user_type
+            if hasattr(self.session, 'user_type'):
+                self.user_type = self.session.user_type
+            else:
+                self.user_type = None
         # Set request info
         self.http_method = request.method
         self.params = request.params
