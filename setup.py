@@ -15,12 +15,12 @@ requires = [
     ]
 
 setup(name='sofa',
-      version='0.0',
+      version='0.1',
       description='A lightweight REST API framework',
       author='Ryan Eberhardt',
       author_email='ryan@reberhardt.com',
       url='https://github.com/reberhardt/sofa',
-      download_url='https://github.com/reberhardt/sofa/tarball/0.0',
+      download_url='https://github.com/reberhardt/sofa/tarball/0.1',
       keywords=['rest', 'api'],
       packages=['sofa', 'sofa.scripts'],
       install_requires=requires,
