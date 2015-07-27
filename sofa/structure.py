@@ -236,7 +236,7 @@ class APIValidator(object):
         use the class's existing validate function, and then perform
         func on top of it.
         """
-        old_validator = self.validate
+        old_validator = object.__getattribute__(self, 'validate')
         def new_validator(*args, **kwargs):
             old_validator(*args, **kwargs)
             func(*args, **kwargs)
@@ -248,6 +248,19 @@ class APIValidator(object):
         # If func is specified, we will use it as the validation function
         if func:
             self.validate = func
+
+    # The following two functions are an ugly hack so that we can override
+    # validatorobj.validate, but if that happens to be a lambda from the API
+    # config (in the form of a string) and something tries to call it, it won't
+    # freak out (because strings obviously aren't callable)
+    def _exec_validator(self, value):
+        exec_function(object.__getattribute__(self, 'validate'), value)
+
+    def __getattribute__(self, key):
+        if key == 'validate':
+            return self._exec_validator
+        else:
+            return object.__getattribute__(self, key)
 
 
 class APIReader(object):

@@ -154,7 +154,7 @@ def get_resource_info(path):
                             validator = get_handler_func(resource_class, attr[name]['validator'])
                             if isinstance(validator, basestring):
                                 validator = eval(validator)
-                            if not inspect.isclass(validator):
+                            if callable(validator):
                                 validator = APIValidator(validator)
                     else:
                         validator = None
