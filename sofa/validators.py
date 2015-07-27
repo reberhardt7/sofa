@@ -79,6 +79,26 @@ class IntegerValidator(APIValidator):
             raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be an integer." % self.attr_name)
 
 
+class FloatValidator(APIValidator):
+    """
+    Validates decimal numbers
+    """
+
+    def __init__(self, attr_name=None, min=None, max=None):
+        self.attr_name = attr_name
+        self.min = min
+        self.max = max
+
+    def validate(self, value):
+        try:
+            if not float(value) >= self.min:
+                raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be at least %s." % (self.attr_name, self.min))
+            if not float(value) <= self.max:
+                raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be less than %s." % (self.attr_name, self.max))
+        except ValueError:
+            raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be a decimal number." % self.attr_name)
+
+
 class StringValidator(APIValidator):
     """
     Validates strings of text, with certain constraints

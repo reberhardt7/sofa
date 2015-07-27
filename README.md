@@ -286,6 +286,7 @@ The following validators are provided as part of Sofa:
 | APIValidator      | Does absolutely nothing.                                                       | None                                                                                     |
 | BooleanValidator  | Will accept 'true', 't', '1', 'false', 'f', or '0'                             | None                                                                                     |
 | IntegerValidator  | Validates integers (also accepts strings containing integers)                  | `min`, `max`, `allow_negative`=`True`                                                    |
+| FloatValidator    | Validates decimal numbers                                                      | `min`, `max`                                                                             |
 | StringValidator   | Validates strings.                                                             | `min_len`, `max_len`, `allow_digits=True`, `allow_special_chars=True`, `valid_values=[]` |
 | DateValidator     | Validates dates in 'YYYY-mm-dd' format                                         | None                                                                                     |
 | DatetimeValidator | Validates dates in 'YYYY-mm-ddTHH:MM:SSZ' form (i.e. zulu time)                | None                                                                                     |

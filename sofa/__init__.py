@@ -17,6 +17,7 @@ from validators import (
     StringIdValidator,
     BooleanValidator,
     IntegerValidator,
+    FloatValidator,
     StringValidator,
     DateValidator,
     DatetimeValidator,
