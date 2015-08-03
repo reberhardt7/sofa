@@ -69,9 +69,9 @@ class IntegerValidator(APIValidator):
 
     def validate(self, value):
         try:
-            if not int(value) >= self.min:
+            if self.min and not int(value) >= self.min:
                 raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be at least %s." % (self.attr_name, self.min))
-            if not int(value) <= self.max:
+            if self.max and not int(value) <= self.max:
                 raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be less than %s." % (self.attr_name, self.max))
             if not self.allow_negative and int(value) < 0:
                 raise ResourceException(400, 'bad_'+self.attr_name, "The %s field cannot be less than zero." % self.attr_name)
@@ -91,9 +91,9 @@ class FloatValidator(APIValidator):
 
     def validate(self, value):
         try:
-            if not float(value) >= self.min:
+            if self.min and not float(value) >= self.min:
                 raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be at least %s." % (self.attr_name, self.min))
-            if not float(value) <= self.max:
+            if self.max and not float(value) <= self.max:
                 raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be less than %s." % (self.attr_name, self.max))
         except ValueError:
             raise ResourceException(400, 'bad_'+self.attr_name, "The %s field must be a decimal number." % self.attr_name)
