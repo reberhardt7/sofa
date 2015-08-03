@@ -3,22 +3,7 @@ import inspect
 
 from structure import APIAttribute, APIValidator
 from config import get_resource
-from validators import (
-    NumericIdValidator,
-    StringIdValidator,
-    BooleanValidator,
-    IntegerValidator,
-    FloatValidator,
-    StringValidator,
-    DateValidator,
-    DatetimeValidator,
-    EmailValidator,
-    ZipCodeValidator,
-    )
-from readers import (
-    DateReader,
-    DatetimeReader,
-    )
+from tools import eval_with_deps
 from exceptions import (
     ConfigurationException,
     )
@@ -36,7 +21,7 @@ def find_class(name):
         raise ConfigurationException('Could not find APIResource class %r' % name)
     return cls
 
-def get_handler_func(cls, string):
+def get_handler_func(cls, string, dependencies={}):
     """
     Get a handler/callback function from string If cls contains a function whose
     name is in string, this will return that function. Otherwise, it will try to
@@ -55,14 +40,14 @@ def get_handler_func(cls, string):
             # symbols on the fly later, and we don't know what these things are
             # right now because we're just a petty parser and don't have the
             # context
-            eval(string)
+            eval_with_deps(string, dependencies)
             return string
-        except (NameError, SyntaxError), e:
+        except (NameError, SyntaxError, ImportError), e:
             raise ConfigurationException('Could not parse "%s" as a lambda function: %s, %s' % (string, type(e).__name__, e.message))
     else:
         # Try parsing the string as a symbol
         try:
-            return eval(string)
+            return eval_with_deps(string, dependencies)
         except (NameError, SyntaxError):
             raise ConfigurationException('Could not find function %s in %s' % (string, cls))
 
@@ -127,7 +112,7 @@ def get_resource_info(path):
         root_accessible = info['root_accessible'] if 'root_accessible' in info else True
 
         # Set auth
-        resource_auth = get_handler_func(resource_class, info['auth']) if 'auth' in info else None
+        resource_auth = get_handler_func(resource_class, info['auth'], dependencies=dependencies) if 'auth' in info else None
         # For keeping track of the default auth in the current scope:
         auth = resource_auth
         info.pop('auth', None)
@@ -141,23 +126,10 @@ def get_resource_info(path):
                     name = attr.keys()[0]
                     # Get validator info
                     if 'validator' in attr[name].keys():
-                        if attr[name]['validator'].split('(')[0] in ('NumericIdValidator',
-                                                                      'StringIdValidator',
-                                                                      'BooleanValidator',
-                                                                      'IntegerValidator',
-                                                                      'FloatValidator',
-                                                                      'StringValidator',
-                                                                      'DateValidator',
-                                                                      'DatetimeValidator',
-                                                                      'EmailValidator',
-                                                                      'ZipCodeValidator'):
-                            validator = eval(attr[name]['validator'])
-                        else:
-                            validator = get_handler_func(resource_class, attr[name]['validator'])
-                            if isinstance(validator, basestring):
-                                validator = eval(validator)
-                            if callable(validator):
-                                validator = APIValidator(validator)
+                        try:
+                            validator = get_handler_func(resource_class, attr[name]['validator'], dependencies=dependencies)
+                        except (NameError,ImportError,ConfigurationException), e:
+                            raise ConfigurationException('Could not handle the auth function for the %r attribute on %r! Original exception: %s' % (attr, key, e))
                     else:
                         validator = None
                     # Get read/write info
@@ -170,11 +142,11 @@ def get_resource_info(path):
                                         % (key, name))
                     readable = attr[name].get('readable', True)
                     # Get reader/writer functions
-                    reader = get_handler_func(resource_class, attr[name].get('reader', 'None'))
-                    writer = get_handler_func(resource_class, attr[name].get('writer', 'None'))
+                    reader = get_handler_func(resource_class, attr[name].get('reader', 'None'), dependencies=dependencies)
+                    writer = get_handler_func(resource_class, attr[name].get('writer', 'None'), dependencies=dependencies)
                     # Get auth, using context's as default
                     attr_auth = get_handler_func(resource_class,
-                                                 attr[name]['auth']) if 'auth' in attr[name] \
+                                                 attr[name]['auth'], dependencies=dependencies) if 'auth' in attr[name] \
                                 else auth
                     # Get dynamic attribute info
                     dynamic_params = []
@@ -186,23 +158,10 @@ def get_resource_info(path):
                             if isinstance(param, dict):
                                 param_name = param.keys()[0]
                                 if 'validator' in param.values()[0]:
-                                    if param.values()[0]['validator'].split('(')[0] in ('NumericIdValidator',
-                                                                                        'StringIdValidator',
-                                                                                        'BooleanValidator',
-                                                                                        'IntegerValidator',
-                                                                                        'FloatValidator',
-                                                                                        'StringValidator',
-                                                                                        'DateValidator',
-                                                                                        'DatetimeValidator',
-                                                                                        'EmailValidator',
-                                                                                        'ZipCodeValidator'):
-                                        param_validator = eval(param.values()[0]['validator'])
-                                    else:
-                                        try:
-                                            param_validator = getattr(resource_class, param.values()[0]['validator'])
-                                        except KeyError:
-                                            raise ConfigurationException('Validator %r not found' \
-                                                            % param.values()[0]['validator'])
+                                    try:
+                                        param_validator = get_handler_func(resource_class, param.values()[0]['validator'], dependencies=dependencies)
+                                    except (NameError,ImportError,ConfigurationException), e:
+                                        raise ConfigurationException('Could not handle the auth function for the %r dynamic parameter for attribute %r on %r! Original exception: %s' % (param_name, attr, key, e))
                                 else:
                                     param_validator = None
                                 dynamic_params.append({'name': param_name,
@@ -250,13 +209,13 @@ def get_resource_info(path):
                     defaults = child.get('defaults', {})
                     default_pk = child.get('default_pk', None)
                     association_handler = get_handler_func(resource_class,
-                                                           child['association_handler']) \
+                                                           child['association_handler'], dependencies=dependencies) \
                                           if 'association_handler' in child else None
                     disassociation_handler = get_handler_func(resource_class,
-                                                           child['disassociation_handler']) \
+                                                           child['disassociation_handler'], dependencies=dependencies) \
                                           if 'disassociation_handler' in child else None
                     delete_behavior = child.get('delete_behavior', 'delete')
-                    child_auth = get_handler_func(resource_class, child['auth']) \
+                    child_auth = get_handler_func(resource_class, child['auth'], dependencies=dependencies) \
                                  if 'auth' in child else auth
                     leftover_keys = set(child.keys()) - set(['name', 'child', 'references',
                                                              'secondary', 'defaults',
@@ -285,7 +244,7 @@ def get_resource_info(path):
         list_ = {'method': 'GET',
                  'url': key,
                  'params': info['list'].get('params', []),
-                 'auth': get_handler_func(resource_class, info['list']['auth']) \
+                 'auth': get_handler_func(resource_class, info['list']['auth'], dependencies=dependencies) \
                          if 'auth' in info['list'] else auth} \
                  if 'list' in info else None
         info.pop('list', None)
@@ -296,7 +255,7 @@ def get_resource_info(path):
                   'url': key,
                   'required_fields': info['create'].get('required_fields', []),
                   'optional_fields': info['create'].get('optional_fields', []),
-                  'auth': get_handler_func(resource_class, info['create']['auth']) \
+                  'auth': get_handler_func(resource_class, info['create']['auth'], dependencies=dependencies) \
                           if 'auth' in info['create'] else auth} \
                   if 'create' in info else None
         info.pop('create', None)
@@ -313,7 +272,7 @@ def get_resource_info(path):
             info['read'] = {}
         read = {'method': 'GET',
                 'url': key+'/:'+resource_class.primary_key_name(),
-                'auth': get_handler_func(resource_class, info['read']['auth']) \
+                'auth': get_handler_func(resource_class, info['read']['auth'], dependencies=dependencies) \
                         if 'auth' in info['read'] else auth} \
                 if 'read' in info else None
         info.pop('read', None)
@@ -322,7 +281,7 @@ def get_resource_info(path):
             info['update'] = {}
         update = {'method': 'PATCH',
                   'url': key+'/:'+resource_class.primary_key_name(),
-                  'auth': get_handler_func(resource_class, info['update']['auth']) \
+                  'auth': get_handler_func(resource_class, info['update']['auth'], dependencies=dependencies) \
                           if 'auth' in info['update'] else auth} \
                   if 'update' in info else None
         info.pop('update', None)
@@ -331,7 +290,7 @@ def get_resource_info(path):
             info['delete'] = {}
         delete = {'method': 'DELETE',
                   'url': key+'/:'+resource_class.primary_key_name(),
-                  'auth': get_handler_func(resource_class, info['delete']['auth']) \
+                  'auth': get_handler_func(resource_class, info['delete']['auth'], dependencies=dependencies) \
                           if 'auth' in info['delete'] else auth} \
                   if 'delete' in info else None
         info.pop('delete', None)
