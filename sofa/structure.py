@@ -58,6 +58,10 @@ class APIAttribute(object):
         if not validator:
             # If no valiator has been specified, use a dummy APIValidator that does nothing
             validator = APIValidator()
+        if isinstance(validator, basestring):
+            # We got a string as a validator (from a lambda function).
+            # Need to wrap it in an APIValidator
+            validator = APIValidator(validator)
         if isclass(validator):
             # Instantiate the validator if it is just a class reference
             # This allows us to do things like APIAttribute(validator=NumericIdValidator)
