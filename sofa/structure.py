@@ -456,7 +456,10 @@ class APIResource(object):
             #                      if 'url' in action ]
             # from pprint import pformat
             # raise Exception(pformat(dynamic_subpaths))
-            raise KeyError
+            raise ResourceException(404,
+                                     'child_not_found',
+                                     'No child "%s" could be found in this resource.' \
+                                     % key)
         target = self.get_api_config('children', key)
         if isinstance(target, dict):
             # Child is a subcollection
