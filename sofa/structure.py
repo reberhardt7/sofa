@@ -47,7 +47,7 @@ class APIAttribute(object):
         attribute should be displayed in API GET requests; a `reader` param, a reference to a
         function that interprets values from the database to be returned in the API (see
         `_reader()` docstring); a `writable` param, indicating whether or not the attribute
-        should be mutable in API PUT requests; and a `writer` param, a reference to a function
+        should be mutable in API PATCH requests; and a `writer` param, a reference to a function
         that translates values from API requests to database values (see `._writer()` docstring).
 
         Note that `readable` and `writable` do NOT affect the APIAttribute's

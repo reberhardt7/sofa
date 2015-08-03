@@ -99,12 +99,12 @@ class ResourceViews(object):
 
     def other_verb(self):
         context_verb_map = {'read': 'GET',
-                            'update': 'PUT',
+                            'update': 'PATCH',
                             'delete': 'DELETE'}
         allowed_verbs = [ context_verb_map[c] for c in ['read', 'update', 'delete']
                                               if self.request.context.get_api_config(c) ]
         if len(allowed_verbs) == 3:
-            allowed_string = 'only GET, PUT, or DELETE to'
+            allowed_string = 'only GET, PATCH, or DELETE to'
         elif len(allowed_verbs) == 2:
             allowed_string = 'only %s or %s to' % (allowed_verbs[0], allowed_verbs[1])
         elif len(allowed_verbs) == 1:

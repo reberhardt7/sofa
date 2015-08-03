@@ -56,7 +56,7 @@ def includeme(config):
     config.add_view('sofa.views.ResourceViews', attr='get', context=APIResource,
                     renderer='json', request_method='GET', api_context='read')
     config.add_view('sofa.views.ResourceViews', attr='put', context=APIResource,
-                    renderer='json', request_method='PUT', api_context='update')
+                    renderer='json', request_method='PATCH', api_context='update')
     config.add_view('sofa.views.ResourceViews', attr='delete', context=APIResource,
                     renderer='json', request_method='DELETE', api_context='delete')
     config.add_view('sofa.views.ResourceViews', attr='other_verb', context=APIResource,

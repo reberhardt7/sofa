@@ -225,7 +225,7 @@ $ curl -s -X GET 'http://localhost:6543/bananas/1' | python -m json.tool
     "updated_at": "2015-07-25T04:16:03Z"
 }
 
-$ curl -s -X PUT -F "color=yellow" 'http://localhost:6543/bananas/1' | python -m json.tool
+$ curl -s -X PATCH -F "color=yellow" 'http://localhost:6543/bananas/1' | python -m json.tool
 {
     "errorID": "resource_updated",
     "message": "Resource updated.",
@@ -510,7 +510,7 @@ soon.
 
 ### Update
 
-An "update" request (i.e. a PUT request to a resource) contains one or more
+An "update" request (i.e. a PATCH request to a resource) contains one or more
 parameters in the request body that the caller is looking to update. (For
 example, in the "Getting Started" example, we UPDATEd `color=yellow`, but could
 have included any number of parameters to update in a single request as well.)
