@@ -152,7 +152,7 @@ class APIAttribute(object):
         # OK, we're ready to do the update... Get the class of the object we're updating
         resource_class = instance.__class__
         # Get the target class variable that we want to update (probably Column object)
-        target = getattr(resource_class, self.key)
+        target = resource_class.__getattribute__(resource_class, self.key)
         # If that target class variable is a descriptor, use its __set__ to update the value
         if hasattr(target, '__set__'):
             target.__set__(instance, self._writer(value))
@@ -353,6 +353,7 @@ class APIResource(object):
             return False
         if auth_function_out is not True:
             log.warning('The auth function for {} returned a non-boolean value!', self)
+        
         return True
 
     @classmethod
