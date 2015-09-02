@@ -873,6 +873,10 @@ class APISession(object):
     def expires(self):
         return self.updated_at + timedelta(seconds=session_duration())
 
+    @property
+    def is_valid(self):
+        return self.active and self.expires >= datetime.utcnow()
+
     def touch(self):
         self.updated_at = datetime.utcnow()
 
@@ -924,11 +928,11 @@ def check_access_token(request):
     # Check the session ID
     session_id = request.headers['Authorization'].split(None, 1)[-1]
     session = session_lookup_func()(session_id)
-    if not session:
+    if not session or not session.is_valid:
         raise ResourceException(400,
                                 'bad_access_token',
                                 'The access token in the Authorization ' + \
-                                'header is invalid.')
+                                'header is invalid or expired.')
     # Make sure the session hasn't expired
     if session.expires < datetime.utcnow():
         raise ResourceException(401,
