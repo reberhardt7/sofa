@@ -788,7 +788,7 @@ class APICollection(object):
 
     def __json__(self, request):
         """ List resources in collection """
-        auth_function = self.resource.get_api_config('read', 'auth')
+        auth_function = self.resource.get_api_config('list', 'auth')
         # Get SQLAlchemy constraints to apply based on read-context authorization
         if not auth_function:
             filters = self.query_constraints
