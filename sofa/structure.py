@@ -112,20 +112,12 @@ class APIAttribute(object):
         Reads the attribute's value from the specified resource instance using the _reader()
         function.
         """
-        # Get the parent class
-        resource_class = self.cls
-        # Get the target class variable that stores our data (probably SQLAlchemy Column object)
-        target = getattr(resource_class, self.key)
         if self.dynamic_params:
             # This is a dynamic attribute, and we need to pass the "attribute"
             # the appropriate parameters in order to get a value
-            return self._reader(getattr(instance, self.key)(**{p['name']: instance.__request__.GET[p['name']] for p in self.dynamic_params}))
-        # If that target class variable is a descriptor, get the value
-        elif hasattr(target, '__get__'):
-            return self._reader(target.__get__(instance, resource_class))
-        # Otherwise, return it straight up
+            return self._reader(getattr(instance, self.key)(**{p['name']: instance.__request__.GET.get(p['name'], None) for p in self.dynamic_params}))
         else:
-            return self._reader(target)
+            return self._reader(getattr(instance, self.key))
 
     @staticmethod
     def _reader(value):
