@@ -2,6 +2,8 @@ import structure
 
 from sqlalchemy.orm import _mapper_registry
 
+from exceptions import ConfigurationException
+
 import logging
 log = logging.getLogger(__name__)
 
@@ -33,6 +35,10 @@ def set_sqla_session(session):
     _dbsession = session
 
 def sqla_session():
+    if not _dbsession:
+        log.warning('A SQLAlchemy session factory has not been configured. '
+                    'Please call sofa.configure() and pass the sqla_session '
+                    'argument')
     return _dbsession
 
 def set_session_lookup_func(func):
@@ -50,16 +56,20 @@ def session_duration():
     return _session_duration
 
 def root_collections():
+    if not _root_collections:
+        log.warning('No root collections were found. Either you have not '
+            'called sofa.configure() with api_config_path or you have no '
+            'root-accessible resources defined.')
     return _root_collections
 
 def resource_modules():
-    return _api_config['resource_modules']
+    return _api_config.get('resource_modules', [])
 
 def dependencies():
-    return _api_config['dependencies']
+    return _api_config.get('dependencies', {})
 
 def api_config():
-    return _api_config['api']
+    return _api_config.get('api', {})
 
 def collection_class_map():
     return _collection_class_map
