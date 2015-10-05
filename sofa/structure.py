@@ -906,6 +906,9 @@ class ContextPredicate(object):
                           + 'was expecting an APIResource or APICollection')
 
 def check_access_token(request):
+    if hasattr(request, 'sofa_access_token_verified'):
+        return request.sofa_session
+
     if 'Authorization' not in request.headers:
         raise ResourceException(401,
                                 'authentication_required',
@@ -933,6 +936,8 @@ def check_access_token(request):
                                 'header has expired.')
     # Someone is using this session, so let's touch it
     session.touch()
+    request.sofa_access_token_verified = True
+    request.sofa_session = session
     return session
 
 
