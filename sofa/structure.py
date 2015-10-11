@@ -83,8 +83,6 @@ class APIAttribute(object):
             # parentheses
             validator = validator()
         self.validator = validator
-        if not hasattr(self.validator, 'attr_name') or not self.validator.attr_name:
-            self.validator.attr_name = key
         self.readable = readable
         if reader:
             self._reader = reader
@@ -99,7 +97,6 @@ class APIAttribute(object):
                 param['validator'] = param['validator']()
             elif not param['validator']:
                 param['validator'] = APIValidator()
-            param['validator'].attr_name = param['name']
 
     def __repr__(self):
         return "<APIAttribute(key=%r, validator=%r)>" % (self.key, self.validator)
@@ -163,7 +160,7 @@ class APIAttribute(object):
             target.__set__(instance, self._writer(value))
         # Otherwise, just change the value
         else:
-            setattr(instance, self.attr_name, self._writer(value))
+            setattr(instance, self.key, self._writer(value))
 
     @staticmethod
     def _writer(value):
@@ -180,7 +177,7 @@ class APIAttribute(object):
         return self
 
     def validate(self, value):
-        self.validator.validate(value)
+        self.validator.validate(value, self)
 
     def check_authorization(self, request, auth_func=None):
         if not auth_func:
@@ -223,14 +220,15 @@ class APIAttribute(object):
                 return False
             if self.check_authorization(request) is False:
                 return False
-            param['validator'].validate(request.GET[param['name']])
+            param['validator'].validate(request.GET[param['name']], APIAttribute(param['name'], cls=self.cls))
         return True
 
 
 class APIValidator(object):
-    def validate(self, value):
+    def validate(self, value, attr):
         """
-        Dummy validator function
+        Dummy validator function. `attr` is a reference to the APIAttribute
+        that this validator is used for.
         """
         pass
 
@@ -265,8 +263,16 @@ class APIValidator(object):
     # validatorobj.validate, but if that happens to be a lambda from the API
     # config (in the form of a string) and something tries to call it, it won't
     # freak out (because strings obviously aren't callable)
-    def _exec_validator(self, value):
-        exec_function(object.__getattribute__(self, 'validate'), value)
+    def _exec_validator(self, value, attr):
+        try:
+            exec_function(object.__getattribute__(self, 'validate'), value, attr)
+        except TypeError, e:
+            if 'takes exactly' in e:
+                # This might be a quick-and-dirty validator function that
+                # doesn't care for `attr`
+                exec_function(object.__getattribute__(self, 'validate'), value)
+            else:
+                raise
 
     def __getattribute__(self, key):
         if key == 'validate':
