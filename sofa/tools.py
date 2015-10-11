@@ -27,6 +27,12 @@ def _core_deps():
 		_loaded_core_deps.update({name: getattr(writers, name)
 								  for name in dir(writers)
 								  if name.endswith('reader')})
+		types = __import__('sofa.types')
+		_loaded_core_deps.update({name: getattr(types, name)
+							 	  for name in dir(types)
+							 	  if name[0] == name[0].upper()
+							 	  and not name.endswith('Validator')
+							 	  and not name.startswith('_')})
 		return _loaded_core_deps
 
 def eval_with_deps(target, dependencies=None):

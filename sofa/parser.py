@@ -124,12 +124,20 @@ def get_resource_info(path):
                 if isinstance(attr, dict):
                     # Config params were provided
                     name = attr.keys()[0]
+                    # Get type info
+                    if 'type' in attr[name].keys():
+                        try:
+                            _type = get_handler_func(resource_class, attr[name]['type'], dependencies=dependencies)
+                        except (NameError,ImportError,ConfigurationException), e:
+                            raise ConfigurationException('Could not find the type class for the %r attribute on %r! Original exception: %s' % (attr, key, e))
+                    else:
+                        _type = None
                     # Get validator info
                     if 'validator' in attr[name].keys():
                         try:
                             validator = get_handler_func(resource_class, attr[name]['validator'], dependencies=dependencies)
                         except (NameError,ImportError,ConfigurationException), e:
-                            raise ConfigurationException('Could not handle the auth function for the %r attribute on %r! Original exception: %s' % (attr, key, e))
+                            raise ConfigurationException('Could not find the validator function for the %r attribute on %r! Original exception: %s' % (attr, key, e))
                     else:
                         validator = None
                     # Get read/write info
@@ -175,13 +183,14 @@ def get_resource_info(path):
                             'but the attribute is not dynamic!'.format(name, info['class']))
                     leftover_keys = set(attr[name].keys()) - set(['name', 'validator', 'mutable',
                                                                   'readable', 'reader',
-                                                                  'writer', 'auth',
+                                                                  'writer', 'auth', 'type',
                                                                   'params', 'dynamic'])
                     if leftover_keys:
                         raise ConfigurationException('The directives %s are unrecognized in attrs context' \
                                         % ', '.join(list(leftover_keys)))
                     # Save info
-                    attrs.append(APIAttribute(name, validator, readable=readable,
+                    attrs.append(APIAttribute(name, _type=_type,
+                                              validator=validator, readable=readable,
                                               reader=reader, writable=mutable,
                                               writer=writer, auth=attr_auth,
                                               dynamic_params=dynamic_params,

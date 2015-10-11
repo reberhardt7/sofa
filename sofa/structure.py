@@ -35,37 +35,52 @@ log = logging.getLogger(__name__)
 
 
 class APIAttribute(object):
-    def __init__(self, key, validator=None, readable=True, reader=None,
+    def __init__(self, key, _type=None, validator=None, readable=True, reader=None,
                  writable=True, writer=None, auth=None, cls=None, dynamic_params=[]):
         """
-        Initializes an APIAttribute object, representing an attribute of an object in an API.
-        Takes a `key` param, the name of the attribute to be displayed in the API and the name
-        of the class variable that stores the data (e.g. if you want to have a `value` attribute
-        of a resource, the resource class must have a `value` class attribute like a SQLAlchemy
-        Column to store the data); a `validator` param, a reference to an APIValidator object or
-        subclass (see framework.validators); a `readable` param, indicating whether or not the
-        attribute should be displayed in API GET requests; a `reader` param, a reference to a
-        function that interprets values from the database to be returned in the API (see
-        `_reader()` docstring); a `writable` param, indicating whether or not the attribute
-        should be mutable in API PATCH requests; and a `writer` param, a reference to a function
-        that translates values from API requests to database values (see `._writer()` docstring).
+        Initializes an APIAttribute object, representing an attribute of an
+        object in an API. Takes a `key` param, the name of the attribute to be
+        displayed in the API and the name of the class variable that stores
+        the data (e.g. if you want to have a `value` attribute of a resource,
+        the resource class must have a `value` class attribute like a
+        SQLAlchemy Column to store the data); a `_type` param referencing a
+        SofaType object (see sofa.types); a `validator` param, a reference to
+        an APIValidator object (see sofa.validators); a `readable` param,
+        indicating whether or not the attribute should be displayed in API GET
+        requests; a `reader` function that interprets values from the database
+        to be returned in the API (see `_reader()` docstring); a `writable`
+        param, indicating whether or not the attribute should be mutable in
+        API PATCH requests; and a `writer` function that translates values
+        from API requests to database values (see `._writer()` docstring).
 
         Note that `readable` and `writable` do NOT affect the APIAttribute's
-        readability/writability within the read() and write() methods -- they only affect what's
-        served over the HTTP REST API (i.e. they are implemented inside the APIResource class).
+        readability/writability within the read() and write() methods -- they
+        only affect what's served over the HTTP REST API (i.e. they are
+        implemented inside the APIResource class).
         """
         self.key = key
+        if isclass(_type):
+            _type = _type()
+        self.type = _type if _type else SofaType()
+        if not validator and hasattr(_type, 'validator'):
+            validator = _type.validator
+        if not reader and hasattr(_type, 'reader'):
+            reader = _type.reader
+        if not writer and hasattr(_type, 'writer'):
+            writer = _type.writer
         if not validator:
-            # If no valiator has been specified, use a dummy APIValidator that does nothing
+            # If no valiator has been specified, use a dummy APIValidator that
+            # does nothing
             validator = APIValidator()
         if isinstance(validator, basestring):
-            # We got a string as a validator (from a lambda function).
-            # Need to wrap it in an APIValidator
+            # We got a string as a validator (from a lambda function). Need to
+            # wrap it in an APIValidator
             validator = APIValidator(validator)
         if isclass(validator):
-            # Instantiate the validator if it is just a class reference
-            # This allows us to do things like APIAttribute(validator=NumericIdValidator)
-            # without unnecessary parentheses
+            # Instantiate the validator if it is just a class reference. This
+            # allows us to do things like
+            # APIAttribute(validator=NumericIdValidator) without unnecessary
+            # parentheses
             validator = validator()
         self.validator = validator
         if not hasattr(self.validator, 'attr_name') or not self.validator.attr_name:
@@ -257,6 +272,18 @@ class APIValidator(object):
             return object.__getattribute__(self, key)
 
 
+class SofaType(object):
+    """
+    Encapsulates a default reader, writer, and validator for a certain type
+    """
+
+    def __init__(self, reader=None, writer=None, validator=None):
+        self.reader = reader
+        self.writer = writer
+        self.validator = validator
+
+    def __repr__(self):
+        return "<SofaType(reader=%r, writer=%r, validator=%r)>" % (self.reader, self.writer, self.validator)
 
 
 # class ResourceRegistry(type):

@@ -33,6 +33,18 @@ from writers import (
     date_writer,
     datetime_writer,
     )
+from types import (
+    NumericId,
+    StringId,
+    Boolean,
+    Integer,
+    Float,
+    String,
+    Date,
+    Datetime,
+    Email,
+    ZipCode,
+    )
 from config import (
     load_api_config,
     api_config,
