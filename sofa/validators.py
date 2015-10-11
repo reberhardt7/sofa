@@ -132,8 +132,10 @@ class DateValidator(APIValidator):
     Validates dates in YYYY-mm-dd form (%Y-%m-%d strftime form)
     """
     
-    def __init__(self, attr_name=None):
+    def __init__(self, attr_name=None, require_future=False, require_past=False):
         self.attr_name = attr_name
+        self.require_future = require_future
+        self.require_past = require_past
 
     def validate(self, value):
         if not value:
@@ -142,6 +144,10 @@ class DateValidator(APIValidator):
             datetime.strptime(value, '%Y-%m-%d')
         except ValueError:
             raise ResourceException(400, 'bad_'+self.attr_name, 'The date %s is invalid for the %s field. Dates must be in YYYY-mm-dd form.' % (value, self.attr_name))
+        if self.require_future and datetime.strptime(value, '%Y-%m-%d') < datetime.utcnow():
+            raise ResourceException(400, 'bad_'+self.attr_name, 'The %s field must be a future date, but a past date was submitted.' % self.attr_name)
+        if self.require_past and datetime.strptime(value, '%Y-%m-%d') > datetime.utcnow():
+            raise ResourceException(400, 'bad_'+self.attr_name, 'The %s field must be a past date, but a future date was submitted.' % self.attr_name)
 
 
 class DatetimeValidator(APIValidator):
@@ -149,8 +155,10 @@ class DatetimeValidator(APIValidator):
     Validates datetimes in YYYY-mm-ddTHH:MM:SSZ form (%Y-%m-%dT%H:%M:%SZ strftime form)
     """
     
-    def __init__(self, attr_name=None):
+    def __init__(self, attr_name=None, require_future=False, require_past=False):
         self.attr_name = attr_name
+        self.require_future = require_future
+        self.require_past = require_past
 
     def validate(self, value):
         if not value:
@@ -159,6 +167,10 @@ class DatetimeValidator(APIValidator):
             datetime.strptime(value, '%Y-%m-%dT%H:%M:%SZ')
         except ValueError:
             raise ResourceException(400, 'bad_'+self.attr_name, 'The date %s is invalid for the %s field. Dates must be in YYYY-mm-ddTHH:MM:SSZ (%%Y-%%m-%%dT%%H:%%M:%%SZ) form.' % (value, self.attr_name))
+        if self.require_future and datetime.strptime(value, '%Y-%m-%d') < datetime.utcnow():
+            raise ResourceException(400, 'bad_'+self.attr_name, 'The %s field must be a future date, but a past date was submitted.' % self.attr_name)
+        if self.require_past and datetime.strptime(value, '%Y-%m-%d') > datetime.utcnow():
+            raise ResourceException(400, 'bad_'+self.attr_name, 'The %s field must be a past date, but a future date was submitted.' % self.attr_name)
 
 
 class EmailValidator(StringValidator):
