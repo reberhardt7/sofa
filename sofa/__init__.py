@@ -25,8 +25,8 @@ from validators import (
     ZipCodeValidator,
     )
 from readers import (
-    DateReader,
-    DatetimeReader,
+    date_reader,
+    datetime_reader,
     )
 from config import (
     load_api_config,

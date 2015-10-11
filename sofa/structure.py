@@ -71,8 +71,6 @@ class APIAttribute(object):
         if not hasattr(self.validator, 'attr_name') or not self.validator.attr_name:
             self.validator.attr_name = key
         self.readable = readable
-        if reader and isclass(reader):
-            reader = reader().read
         if reader:
             self._reader = reader
         self.writable = writable
@@ -259,9 +257,6 @@ class APIValidator(object):
             return object.__getattribute__(self, key)
 
 
-class APIReader(object):
-    def read(self, value):
-        pass
 
 
 # class ResourceRegistry(type):

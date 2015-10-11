@@ -22,7 +22,7 @@ def _core_deps():
 		readers = __import__('sofa.readers')
 		_loaded_core_deps.update({name: getattr(readers, name)
 							 	  for name in dir(readers)
-							 	  if name.endswith('Reader')})
+								  if name.endswith('reader')})
 		return _loaded_core_deps
 
 def eval_with_deps(target, dependencies=None):
