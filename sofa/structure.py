@@ -153,7 +153,7 @@ class APIAttribute(object):
         (APIValidator) object.
         """
         # Validate the value we'll be using
-        self.validator.validate(value)
+        self.validate(value)
         # OK, we're ready to do the update... Get the class of the object we're updating
         resource_class = instance.__class__
         # Get the target class variable that we want to update (probably Column object)
@@ -178,6 +178,9 @@ class APIAttribute(object):
         """ Decorator to override the attribute's writer (translator) function """
         self._writer = func
         return self
+
+    def validate(self, value):
+        self.validator.validate(value)
 
     def check_authorization(self, request, auth_func=None):
         if not auth_func:
@@ -404,7 +407,7 @@ class APIResource(object):
             # Get APIAttribute object
             attr = cls.get_api_attr(field)
             # Validate the specified value
-            attr.validator.validate(post_params[field])
+            attr.validate(post_params[field])
             # Add to init_params to be passed to object __init__ on creation
             init_params[field] = post_params[field]
             post_params.pop(field)
@@ -415,7 +418,7 @@ class APIResource(object):
                 # Get APIAttribute object
                 attr = cls.get_api_attr(field)
                 # Validate the new value
-                attr.validator.validate(post_params[field])
+                attr.validate(post_params[field])
                 # Add to init_params to be passed to object __init__ on creation
                 init_params[field] = post_params[field]
                 post_params.pop(field)
@@ -526,7 +529,7 @@ class APIResource(object):
         # Validate all the changes before making any of them
         for key in keys_to_update:
             try:
-                writable_attrs[key].validator.validate(post_params[key])
+                writable_attrs[key].validate(post_params[key])
             except ResourceException as e:
                 e.message = e.message.strip() + ' No data has been modified.'
                 raise e
