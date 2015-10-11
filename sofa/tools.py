@@ -23,6 +23,10 @@ def _core_deps():
 		_loaded_core_deps.update({name: getattr(readers, name)
 							 	  for name in dir(readers)
 								  if name.endswith('reader')})
+		writers = __import__('sofa.writers')
+		_loaded_core_deps.update({name: getattr(writers, name)
+								  for name in dir(writers)
+								  if name.endswith('reader')})
 		return _loaded_core_deps
 
 def eval_with_deps(target, dependencies=None):
