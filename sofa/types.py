@@ -52,10 +52,11 @@ class Boolean(SofaType):
 
 class Integer(SofaType):
 
-	def __init__(self, min=None, max=None):
+	def __init__(self, min=None, max=None, unique=False):
 		self.min = min
 		self.max = max
-		self.validator = IntegerValidator(min=min, max=max)
+		self.unique = unique
+		self.validator = IntegerValidator(min=min, max=max, unique=unique)
 		self.writer = lambda value: int(value)
 
 	def __repr__(self):
@@ -64,10 +65,11 @@ class Integer(SofaType):
 
 class Float(SofaType):
 
-	def __init__(self, min=None, max=None):
+	def __init__(self, min=None, max=None, unique=False):
 		self.min = min
 		self.max = max
-		self.validator = FloatValidator(min=min, max=max)
+		self.unique = unique
+		self.validator = FloatValidator(min=min, max=max, unique=unique)
 		self.writer = lambda value: float(value)
 
 	def __repr__(self):
@@ -76,16 +78,18 @@ class Float(SofaType):
 
 class String(SofaType):
 
-	def __init__(self, min_len=None, max_len=None, allow_digits=True, allow_special_chars=True, valid_values=None):
+	def __init__(self, min_len=None, max_len=None, allow_digits=True, allow_special_chars=True, valid_values=None, unique=False):
 		self.min_len = min_len
 		self.max_len = max_len
 		self.allow_digits = allow_digits
 		self.allow_special_chars = allow_special_chars
 		self.valid_values = valid_values
+		self.unique = unique
 		self.validator = StringValidator(min_len=min_len, max_len=max_len,
 										 allow_digits=allow_digits,
 										 allow_special_chars=allow_special_chars,
-										 valid_values=valid_values)
+										 valid_values=valid_values,
+										 unique=unique)
 
 	def __repr__(self):
 		return "<String()>"
@@ -119,8 +123,9 @@ class Datetime(SofaType):
 
 class Email(SofaType):
 
-	def __init__(self):
-		self.validator = EmailValidator()
+	def __init__(self, unique=False):
+		self.unique = unique
+		self.validator = EmailValidator(unique=unique)
 
 	def __repr__(self):
 		return "<Email()>"
@@ -128,8 +133,9 @@ class Email(SofaType):
 
 class ZipCode(SofaType):
 
-	def __init__(self):
-		self.validator = ZipCodeValidator()
+	def __init__(self, unique=False):
+		self.unique = unique
+		self.validator = ZipCodeValidator(unique=unique)
 
 	def __repr__(self):
 		return "<ZipCode()>"

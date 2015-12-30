@@ -8,24 +8,29 @@ import re
 from datetime import datetime
 
 from structure import APIValidator
-
 from responses import ResourceException
+from config import sqla_session
 
 from validate_email import validate_email
+
+def build_unique_query(cls, key, value):
+    return sqla_session().query(cls).filter(getattr(cls, key)==value)
 
 
 class NumericIdValidator(APIValidator):
     """
-    Validates integer-based resource IDs
+    Validates unique integer-based resource IDs
     """
     def validate(self, value, attr):
         if not str(value).isdigit():
             raise ResourceException(400, 'bad_'+attr.key, "The %s field is not a valid positive integer." % attr.key)
+        if build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
 
 
 class StringIdValidator(APIValidator):
     """
-    Validates string-based resource IDs
+    Validates unique string-based resource IDs
     """
 
     def __init__(self, id_length=6):
@@ -36,6 +41,8 @@ class StringIdValidator(APIValidator):
             raise ResourceException(400, 'bad_'+attr.key, "The %s field must be %s characters long." % (attr.key, self.id_length))
         if not re.match('^[\w-]+$', value.strip()):
             raise ResourceException(400, 'bad_'+attr.key, "The %s field may only contain alphanumeric characters." % attr.key)
+        if build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
 
 
 class BooleanValidator(APIValidator):
@@ -53,10 +60,11 @@ class IntegerValidator(APIValidator):
     Validates integers
     """
 
-    def __init__(self, min=None, max=None, allow_negative=True):
+    def __init__(self, min=None, max=None, allow_negative=True, unique=False):
         self.min = min
         self.max = max
         self.allow_negative = allow_negative
+        self.unique = unique
 
     def validate(self, value, attr):
         try:
@@ -68,6 +76,8 @@ class IntegerValidator(APIValidator):
                 raise ResourceException(400, 'bad_'+attr.key, "The %s field cannot be less than zero." % attr.key)
         except ValueError:
             raise ResourceException(400, 'bad_'+attr.key, "The %s field must be an integer." % attr.key)
+        if self.unique and build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
 
 
 class FloatValidator(APIValidator):
@@ -75,9 +85,10 @@ class FloatValidator(APIValidator):
     Validates decimal numbers
     """
 
-    def __init__(self, min=None, max=None):
+    def __init__(self, min=None, max=None, unique=False):
         self.min = min
         self.max = max
+        self.unique = unique
 
     def validate(self, value, attr):
         try:
@@ -87,6 +98,8 @@ class FloatValidator(APIValidator):
                 raise ResourceException(400, 'bad_'+attr.key, "The %s field must be less than %s." % (attr.key, self.max))
         except ValueError:
             raise ResourceException(400, 'bad_'+attr.key, "The %s field must be a decimal number." % attr.key)
+        if self.unique and build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
 
 
 class StringValidator(APIValidator):
@@ -94,12 +107,13 @@ class StringValidator(APIValidator):
     Validates strings of text, with certain constraints
     """
 
-    def __init__(self, min_len=None, max_len=None, allow_digits=True, allow_special_chars=True, valid_values=None):
+    def __init__(self, min_len=None, max_len=None, allow_digits=True, allow_special_chars=True, valid_values=None, unique=False):
         self.min_len = min_len
         self.max_len = max_len
         self.allow_digits = allow_digits
         self.allow_special_chars = allow_special_chars
         self.valid_values = valid_values
+        self.unique = unique
 
     def validate(self, value, attr):
         value = str(value).strip()
@@ -114,6 +128,8 @@ class StringValidator(APIValidator):
         if self.valid_values and value not in self.valid_values:
             raise ResourceException(400, 'bad_'+attr.key, "The %s field is invalid; %r is not a valid value. Accepted values: %s" \
                                                                 % (attr.key, value, ', '.join([ '%r' % val for val in self.valid_values ])))
+        if self.unique and build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
 
 
 class DateValidator(APIValidator):
@@ -165,13 +181,16 @@ class EmailValidator(StringValidator):
     Validates email addresses
     """
 
-    def __init__(self):
+    def __init__(self, unique=False):
+        self.unique = unique
         super(EmailValidator, self).__init__(min_len=5, max_len=255)
 
     def validate(self, value, attr):
         super(EmailValidator, self).validate(value)
         if not validate_email(value):
             raise ResourceException(400, 'bad_'+attr.key, "The email address is not valid.")
+        if self.unique and build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
 
 
 class ZipCodeValidator(StringValidator):
@@ -179,10 +198,12 @@ class ZipCodeValidator(StringValidator):
     Validates 5-digit US zip codes
     """
 
-    def __init__(self):
+    def __init__(self, unique=False):
+        self.unique = unique
         super(ZipCodeValidator, self).__init__(min_len=5, max_len=5)
 
     def validate(self, value, attr):
         if not re.match(r'^\d{5}$', value):
             raise ResourceException(400, 'bad_'+attr.key, 'The zip code "%s" is not valid.' % value)
-
+        if self.unique and build_unique_query(attr.cls, attr.key, value).first():
+            raise ResourceException(400, 'duplicate_'+attr.key, "The %s field is not unique." % attr.key)
