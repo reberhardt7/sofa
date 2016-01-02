@@ -51,7 +51,8 @@ class BooleanValidator(APIValidator):
     """
 
     def validate(self, value, attr):
-        if str(value).lower() not in ('true', 't', '1', 'false', 'f', '0'):
+        valid_values = ['true', '1', 'false', '0']
+        if str(value).lower() not in valid_values:
             raise ResourceException(400, 'bad_'+attr.key, "The %s field is invalid (%r is not a valid boolean value)." % (attr.key, value))
 
 

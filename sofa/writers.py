@@ -4,9 +4,9 @@ API into a format for database storage.
 """
 
 def boolean_writer(value):
-	if str(value).lower() in ['t', 'true', '1']:
+	if str(value).lower() in ['true', '1']:
 		return True
-	elif str(value).lower() in ['f', 'false', '0']:
+	elif str(value).lower() in ['false', '0']:
 		return False
 	else:
 		raise ValueError('%r is not a valid boolean' % value)
