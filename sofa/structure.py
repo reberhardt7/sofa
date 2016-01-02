@@ -704,22 +704,25 @@ class APICollection(object):
                 else:
                     query_constraints.append(target_attr_auth)
             try:
-                if op == ':':
-                    query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__).like(value))
-                elif op == '=':
-                    query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) == value)
-                elif op == '<':
-                    query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) < value)
-                elif op == '>':
-                    query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) > value)
-                elif op == '<=':
-                    query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) <= value)
-                elif op == '>=':
-                    query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) >= value)
-                else:
-                    raise ValueError('The operator %r is invalid' % op)
+                apiattr = getapiattr(resource, key)
             except AttributeError:
                 raise AttributeError("Class {} has no attribute {}.".format(resource.__name__, key))
+            apiattr.validate(value)
+            value = apiattr._writer(value)
+            if op == ':':
+                query_constraints.append(apiattr.get_class_attr(self.__request__).like(value))
+            elif op == '=':
+                query_constraints.append(apiattr.get_class_attr(self.__request__) == value)
+            elif op == '<':
+                query_constraints.append(apiattr.get_class_attr(self.__request__) < value)
+            elif op == '>':
+                query_constraints.append(apiattr.get_class_attr(self.__request__) > value)
+            elif op == '<=':
+                query_constraints.append(apiattr.get_class_attr(self.__request__) <= value)
+            elif op == '>=':
+                query_constraints.append(apiattr.get_class_attr(self.__request__) >= value)
+            else:
+                raise ValueError('The operator %r is invalid' % op)
         # sort_by support
         if sort_by:
             target_attr = next((attr for attr in resource.get_api_config()['attrs'] if attr.is_visible(self.__request__) and attr.key == sort_by), None)
