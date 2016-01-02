@@ -850,31 +850,37 @@ class APICollection(object):
             item.__request__ = self.__request__
         return items
 
-    def check_authorization(self, request, auth_func):
-    #     if not auth_func:
-    #         return
-    #
-    #     # An auth function could take an auth context, a context and a target
-    #     # that we're authorizing against, or nothing at all. Try to provide the
-    #     # right parameters based on the number of params the function has
-    #     auth_func_param_names = func_params(auth_func)[1:]
-    #     if not auth_func_param_names:
-    #         auth_function_out = exec_function(auth_func)
-    #     elif len(auth_func_param_names) == 1:
-    #         auth_function_out = exec_function(auth_func, AuthContext(request))
-    #     else:
-    #         auth_function_out = exec_function(auth_func, AuthContext(request), self)
-    #
-    #
-    #     constraints = auth_function_out
-    #     if not isinstance(constraints, collections.Sequence):
-    #         constraints = [constraints]
-    #     if user not in DBSession.query(User).filter(*constraints).all():
-    #         raise ResourceException(403,
-    #                                 'unauthorized_caller',
-    #                                 'You do not have sufficient privileges to perform ' + \
-    #                                 'this action.')
-        # TODO: Is there any time when a root collection should *not* be authorized?
+    def check_authorization(self, request, auth_func, raise_exc=True):
+        if not auth_func:
+            # No auth func specified
+            return True
+
+        # An auth function could take an auth context, a context and a target
+        # that we're authorizing against, or nothing at all. Try to provide the
+        # right parameters based on the number of params the function has
+        auth_func_param_names = func_params(auth_func)
+        if not auth_func_param_names:
+            auth_function_out = exec_function(auth_func)
+        else:
+            auth_function_out = exec_function(auth_func, AuthContext(request))
+
+        if isinstance(auth_function_out, collections.Sequence):
+            # We got a list of booleans (since the lambdas returns are designed
+            # to be compatible with SQLAlchemy filters, i.e. the lambda might
+            # be like "condition1, condition2, condition3"). Convert this to
+            # "condition1 and condition2 and condition3"
+            auth_function_out = all(auth_function_out)
+
+        if not auth_function_out:
+            if raise_exc:
+                raise ResourceException(403,
+                                        'unauthorized_caller',
+                                        'You do not have sufficient privileges to perform ' + \
+                                        'this action.')
+            return False
+        if auth_function_out is not True:
+            log.warning('The auth function for {} returned a non-boolean value!', self)
+        
         return True
 
 
