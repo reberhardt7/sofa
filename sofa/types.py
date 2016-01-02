@@ -116,7 +116,7 @@ class Date(SofaType):
 
 class Datetime(SofaType):
 
-	def __init__(self, require_future=False, require_past=False, nullable=nullable):
+	def __init__(self, require_future=False, require_past=False, nullable=False):
 		self.require_future = require_future
 		self.require_past = require_past
 		self.validator = DatetimeValidator(require_future=require_future, require_past=require_past, nullable=nullable)
