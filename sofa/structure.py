@@ -215,10 +215,10 @@ class APIAttribute(object):
         """
         if not self.readable:
             return False
+        if self.check_authorization(request) is False:
+            return False
         for param in self.dynamic_params:
             if param['name'] not in request.GET:
-                return False
-            if self.check_authorization(request) is False:
                 return False
             param['validator'].validate(request.GET[param['name']], APIAttribute(param['name'], cls=self.cls))
         return True
