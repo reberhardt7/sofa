@@ -129,7 +129,9 @@ def get_resource_info(path):
                         try:
                             _type = get_handler_func(resource_class, attr[name]['type'], dependencies=dependencies)
                         except (NameError,ImportError,ConfigurationException), e:
-                            raise ConfigurationException('Could not find the type class for the %r attribute on %r! Original exception: %s' % (attr, key, e))
+                            raise ConfigurationException('Could not find the type class for the %r attribute on %r! Original exception: %s' % (name, key, e))
+                        except Exception, e:
+                            raise ConfigurationException('Error parsing type for %s.%s (%s -> resources -> %s -> attrs -> %s -> type)! Original exception: %s' % (resource_class.__name__, name, path, key, name, e))
                     else:
                         _type = None
                     # Get validator info
@@ -186,7 +188,7 @@ def get_resource_info(path):
                                                                   'writer', 'auth', 'type',
                                                                   'params', 'dynamic'])
                     if leftover_keys:
-                        raise ConfigurationException('The directives %s are unrecognized in attrs context' \
+                        raise ConfigurationException('The directives %r are unrecognized in attrs context' \
                                         % ', '.join(list(leftover_keys)))
                     # Save info
                     attrs.append(APIAttribute(name, _type=_type,

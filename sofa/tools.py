@@ -74,9 +74,13 @@ def eval_with_deps(target, dependencies=None):
 						globals()[dep] = dependencies[dep]
 					else:
 						# We don't know what this is.
+						_log.error('Error while evaluating %r: %r', target, e)
 						raise
 				else:
 					raise
+			except Exception, e:
+				_log.error('Error while evaluating %r: %r', target, e)
+				raise
 	else:
 		return target
 
