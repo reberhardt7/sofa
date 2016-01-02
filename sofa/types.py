@@ -42,8 +42,9 @@ class StringId(SofaType):
 
 class Boolean(SofaType):
 
-	def __init__(self):
-		self.validator = BooleanValidator()
+	def __init__(self, nullable=False):
+		self.nullable = nullable
+		self.validator = BooleanValidator(nullable=nullable)
 		self.writer = boolean_writer
 
 	def __repr__(self):
@@ -52,11 +53,12 @@ class Boolean(SofaType):
 
 class Integer(SofaType):
 
-	def __init__(self, min=None, max=None, unique=False):
+	def __init__(self, min=None, max=None, unique=False, nullable=False):
 		self.min = min
 		self.max = max
 		self.unique = unique
-		self.validator = IntegerValidator(min=min, max=max, unique=unique)
+		self.nullable = nullable
+		self.validator = IntegerValidator(min=min, max=max, unique=unique, nullable=nullable)
 		self.writer = lambda value: int(value)
 
 	def __repr__(self):
@@ -65,11 +67,12 @@ class Integer(SofaType):
 
 class Float(SofaType):
 
-	def __init__(self, min=None, max=None, unique=False):
+	def __init__(self, min=None, max=None, unique=False, nullable=False):
 		self.min = min
 		self.max = max
 		self.unique = unique
-		self.validator = FloatValidator(min=min, max=max, unique=unique)
+		self.nullable = nullable
+		self.validator = FloatValidator(min=min, max=max, unique=unique, nullable=nullable)
 		self.writer = lambda value: float(value)
 
 	def __repr__(self):
@@ -78,18 +81,20 @@ class Float(SofaType):
 
 class String(SofaType):
 
-	def __init__(self, min_len=None, max_len=None, allow_digits=True, allow_special_chars=True, valid_values=None, unique=False):
+	def __init__(self, min_len=None, max_len=None, allow_digits=True, allow_special_chars=True, valid_values=None, unique=False, nullable=False):
 		self.min_len = min_len
 		self.max_len = max_len
 		self.allow_digits = allow_digits
 		self.allow_special_chars = allow_special_chars
 		self.valid_values = valid_values
 		self.unique = unique
+		self.nullable = nullable
 		self.validator = StringValidator(min_len=min_len, max_len=max_len,
 										 allow_digits=allow_digits,
 										 allow_special_chars=allow_special_chars,
 										 valid_values=valid_values,
-										 unique=unique)
+										 unique=unique,
+										 nullable=nullable)
 
 	def __repr__(self):
 		return "<String()>"
@@ -97,10 +102,11 @@ class String(SofaType):
 
 class Date(SofaType):
 
-	def __init__(self, require_future=False, require_past=False):
+	def __init__(self, require_future=False, require_past=False, nullable=False):
 		self.require_future = require_future
 		self.require_past = require_past
-		self.validator = DateValidator(require_future=require_future, require_past=require_past)
+		self.nullable = nullable
+		self.validator = DateValidator(require_future=require_future, require_past=require_past, nullable=nullable)
 		self.reader = date_reader
 		self.writer = date_writer
 
@@ -110,10 +116,10 @@ class Date(SofaType):
 
 class Datetime(SofaType):
 
-	def __init__(self, require_future=False, require_past=False):
+	def __init__(self, require_future=False, require_past=False, nullable=nullable):
 		self.require_future = require_future
 		self.require_past = require_past
-		self.validator = DatetimeValidator(require_future=require_future, require_past=require_past)
+		self.validator = DatetimeValidator(require_future=require_future, require_past=require_past, nullable=nullable)
 		self.reader = datetime_reader
 		self.writer = datetime_writer
 
@@ -123,9 +129,10 @@ class Datetime(SofaType):
 
 class Email(SofaType):
 
-	def __init__(self, unique=False):
+	def __init__(self, unique=False, nullable=False):
 		self.unique = unique
-		self.validator = EmailValidator(unique=unique)
+		self.nullable = nullable
+		self.validator = EmailValidator(unique=unique, nullable=nullable)
 
 	def __repr__(self):
 		return "<Email()>"
@@ -133,9 +140,10 @@ class Email(SofaType):
 
 class ZipCode(SofaType):
 
-	def __init__(self, unique=False):
+	def __init__(self, unique=False, nullable=False):
 		self.unique = unique
-		self.validator = ZipCodeValidator(unique=unique)
+		self.nullable = nullable
+		self.validator = ZipCodeValidator(unique=unique, nullable=nullable)
 
 	def __repr__(self):
 		return "<ZipCode()>"
