@@ -89,7 +89,7 @@ class ResourceViews(object):
         return ResourceUpdated()
 
     def delete(self):
-        """ Mark this resource as inactive """
+        """ Delete the resource from the database """
         # Make sure the caller is authorized to delete
         self.request.context.check_authorization(self.request,
             self.request.context.get_api_config('delete', 'auth'))

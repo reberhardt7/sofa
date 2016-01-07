@@ -308,10 +308,8 @@ class SofaType(object):
 
 class APIResource(object):
 
-    active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    deleted_at = Column(DateTime)
 
     __request__ = None    # Pyramid request object should be set by traversal parent
 
@@ -450,16 +448,11 @@ class APIResource(object):
         Creates and returns a dictionary with all keys and values of this resource's
         public attributes, for rendering to JSON (used in GET requests)
         """
-        default_attrs = [APIAttribute('active', writable=False, cls=self.__class__),
-                         APIAttribute('created_at', writable=False,
+        default_attrs = [APIAttribute('created_at', writable=False,
                                       reader=lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ") if x
                                                        else None,
                                       cls=self.__class__),
                          APIAttribute('updated_at', writable=False,
-                                      reader=lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ") if x
-                                                       else None,
-                                      cls=self.__class__),
-                         APIAttribute('deleted_at', writable=False,
                                       reader=lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ") if x
                                                        else None,
                                       cls=self.__class__)]
@@ -558,8 +551,7 @@ class APIResource(object):
                                                              self.__request__)
         else:
             log.debug('Deleting {}'.format(self))
-            self.active = False
-            self.deleted_at = datetime.utcnow()
+            sqla_session().delete(self)
 
 
 class RegistryMeta(type):
@@ -682,7 +674,6 @@ class APICollection(object):
             query_target = [resource]
             query_constraints = []
         # Add constraints based on filters, sort, and kwargs
-        query_constraints.append(getattr(resource, 'active') == (True))
         for key, value in kwargs.iteritems():
             try:
                 query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) == value)
@@ -907,7 +898,7 @@ class APISession(object):
 
     @property
     def is_valid(self):
-        return self.active and self.expires >= datetime.utcnow()
+        return self.expires >= datetime.utcnow()
 
     def touch(self):
         self.updated_at = datetime.utcnow()

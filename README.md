@@ -204,10 +204,8 @@ $ curl -s -X POST -F "name=bob" -F "color=brown" 'http://localhost:6543/bananas'
 $ curl -s -X GET 'http://localhost:6543/bananas' | python -m json.tool
 [
     {
-        "active": true,
         "color": "brown",
         "created_at": "2015-07-25T04:16:03Z",
-        "deleted_at": null,
         "id": 1,
         "name": "bob",
         "updated_at": "2015-07-25T04:16:03Z"
@@ -216,10 +214,8 @@ $ curl -s -X GET 'http://localhost:6543/bananas' | python -m json.tool
 
 $ curl -s -X GET 'http://localhost:6543/bananas/1' | python -m json.tool
 {
-    "active": true,
     "color": "brown",
     "created_at": "2015-07-25T04:16:03Z",
-    "deleted_at": null,
     "id": 1,
     "name": "bob",
     "updated_at": "2015-07-25T04:16:03Z"
@@ -234,10 +230,8 @@ $ curl -s -X PATCH -F "color=yellow" 'http://localhost:6543/bananas/1' | python 
 
 $ curl -s -X GET 'http://localhost:6543/bananas/1' | python -m json.tool
 {
-    "active": true,
     "color": "yellow",
     "created_at": "2015-07-25T04:16:03Z",
-    "deleted_at": null,
     "id": 1,
     "name": "bob",
     "updated_at": "2015-07-25T04:17:25Z"
@@ -257,19 +251,15 @@ $ curl -s -X GET 'http://localhost:6543/bananas' | python -m json.tool
 Default attributes
 ------------------
 
-In the above example, you may notice that the API returned `active`,
-`created_at`, `deleted_at`, and `updated_at` attributes, even though we never
-declared these in our model or our API configuration. These are Sofa *default
-attributes*, included with every resource.
+In the above example, you may notice that the API returned `created_at` and
+`updated_at` attributes, even though we never declared these in our model or
+our API configuration. These are Sofa *default attributes*, included
+automatically with every resource.
 
-The `created_at` and `updated_at` attributes are self-explanatory and are
-maintained by Sofa. You may access them from inside your model (e.g.
-`self.updated_at`), as they are inherited from `APIResource`. The `active` and
-`delete` attributes track if/when a resource has been deleted. Sofa never
-actually deletes things. If it gets an authorized DELETE request, it will mark
-the `active` attribute on the resource `False`, and for all intents and
-purposes, the resource will act deleted. However, it will still be in your
-database in the event you need to restore it.
+The `created_at` and `updated_at` attributes give the time (in UTC) that the
+resource was created or last updated. They are maintained by Sofa, but you may
+access them from inside your model (e.g. `self.updated_at`), as they are
+inherited from `APIResource`.
 
 Validators
 ----------
@@ -499,14 +489,11 @@ where each key/value can also be serialized to JSON.)
 
 ### List
 
-When Sofa gets a "list" request (i.e. a GET request to a collection), it verify
-authorization and then query the database for all active resources (i.e. those
-where the `active` attribute on the resource, automatically included by Sofa,
-indicating whether a resource has not or has been deleted -- see **Conservation
-of data** below) and return these resources in a list. The JSON serializer will
-call the `__json__()` method on each individual resource (see **Read** above).
-List requests can include filters and other parameters -- documentation coming
-soon.
+When Sofa gets a "list" request (i.e. a GET request to a collection), it will
+verify authorization and then query the database for all resources in the
+collection and return these resources in a list. The JSON serializer will call
+the `__json__()` method on each individual resource (see **Read** above). List
+requests can include filters and other parameters -- documentation coming soon.
 
 ### Update
 
@@ -526,8 +513,7 @@ database with the output of the `writer` function.
 
 A "delete" reequest (i.e. a DELETE request to a resource) is perhaps the
 simplest of all. Sofa checks that the caller is authorized to make the request,
-and then sets the `active` attribute on the resource to `False`, marking it as
-deleted. (See **Conservation of data** below for explanation.)
+and then removes the resource from the database.
 
 Controlling authorization
 -------------------------
@@ -760,9 +746,7 @@ $ curl -s -X GET 'http://localhost:6543/users/1' | python -m json.tool
 
 $ curl -s -X GET -H "Authorization: token 7f6945f490e7b6ab3b9caa702d7ef95e" 'http://localhost:6543/users/1' | python -m json.tool
 {
-    "active": true,
     "created_at": "2015-07-18T03:28:57Z",
-    "deleted_at": null,
     "email": "no@noemail.noemail",
     "id": 1,
     "name": "Root",
