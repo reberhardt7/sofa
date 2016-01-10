@@ -207,6 +207,25 @@ def get_resource_info(path):
         if len(attr_names) != len(set(attr_names)):
             raise ConfigurationException('The configuration for %s lists duplicate attr keys.' % key)
 
+        # Get default filters
+        default_filters = info.get('default_filters', {})
+        if not isinstance(default_filters, dict):
+            raise ConfigurationException('The default_values for %r must be a dictionary (for each default filter, enter a line reading "attr_name: value")' % key)
+        for filter_key, filter_value in default_filters.iteritems():
+            # Make sure this is a filter for an attribute that exists
+            if filter_key not in attr_names:
+                raise ConfigurationException('Attribute %r (specified in %r > default_filters) is unknown' % (filter_key, key))
+            # Make sure the specified value is an accepted value
+            apiattr = next(attr for attr in attrs if attr.key == filter_key)
+            try:
+                apiattr.validate(filter_value)
+            except ResourceException:
+                raise ConfigurationException('The validator for attribute %r rejected the value %r (specified in %r > default_filters)' % (filter_key, filter_value, key))
+            # If necessary, convert the value specified in the config into a
+            # format that can be used in comparisons
+            default_filters[filter_key] = apiattr._writer(filter_value)
+        info.pop('default_filters', None)
+
         # Get child info
         children = {}
         if 'children' in info:
@@ -318,6 +337,7 @@ def get_resource_info(path):
         resource_info[resource_class.__name__] = {'group_name': key,
                                                   'root_accessible': root_accessible,
                                                   'attrs': attrs,
+                                                  'default_filters': default_filters,
                                                   'children': children,
                                                   'auth': resource_auth,
                                                   'list': list_,

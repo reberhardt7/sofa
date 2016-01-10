@@ -673,12 +673,8 @@ class APICollection(object):
         else:
             query_target = [resource]
             query_constraints = []
-        # Add constraints based on filters, sort, and kwargs
-        for key, value in kwargs.iteritems():
-            try:
-                query_constraints.append(getapiattr(resource, key).get_class_attr(self.__request__) == value)
-            except AttributeError:
-                raise AttributeError("Class {} has no attribute {}.".format(resource.__name__, key))
+        # Add constraints based on default_filters, filters, and kwargs
+        # First, make sure that the stuff specified in `filters` is valid
         for key, op, value in filters:
             target_attr = next((attr for attr in resource.get_api_config()['attrs'] if attr.is_visible(self.__request__) and attr.key == key), None)
             target_attr_auth = target_attr.check_authorization(self.__request__) if target_attr else False
@@ -694,26 +690,47 @@ class APICollection(object):
                     query_constraints.extend(target_attr_auth)
                 else:
                     query_constraints.append(target_attr_auth)
-            try:
-                apiattr = getapiattr(resource, key)
-            except AttributeError:
-                raise AttributeError("Class {} has no attribute {}.".format(resource.__name__, key))
-            apiattr.validate(value)
-            value = apiattr._writer(value)
-            if op == ':':
-                query_constraints.append(apiattr.get_class_attr(self.__request__).like(value))
-            elif op == '=':
-                query_constraints.append(apiattr.get_class_attr(self.__request__) == value)
-            elif op == '<':
-                query_constraints.append(apiattr.get_class_attr(self.__request__) < value)
-            elif op == '>':
-                query_constraints.append(apiattr.get_class_attr(self.__request__) > value)
-            elif op == '<=':
-                query_constraints.append(apiattr.get_class_attr(self.__request__) <= value)
-            elif op == '>=':
-                query_constraints.append(apiattr.get_class_attr(self.__request__) >= value)
-            else:
-                raise ValueError('The operator %r is invalid' % op)
+        # We are going to create two sets of filters. The first list, which
+        # will be used to determine which items comprise this collection,
+        # contains filters from `kwargs` and `filters`. The second set, which
+        # will determine which items are *shown* in a `list` request, will
+        # also include filters from `default_filters`. The reason for this is
+        # that let's say a caller sets some default_filters so that any
+        # objects with attribute `active`=False are not shown on list
+        # requests. However, if we know the object's ID and want to update or
+        # delete it, we still want to be able to get to it; hence the first
+        # set of filters will be used in that case.
+        #        
+        # We combine `default_filters`, `kwargs`, and `filters`, such that
+        # e.g. filters specified in `filters` override filters specified in
+        # `kwargs` which override filters specified in `default_filters`
+        hard_filters = [ (key, '=', value) for key, value in kwargs.iteritems() if key not in [k for k,o,v in filters] ] + filters
+        soft_filters = [ (key, '=', value) for key, value in resource.get_api_config()['default_filters'].iteritems() if key not in [k for k,o,v in hard_filters] ] + hard_filters
+        # Convert these lists of "tuple-filters" into filterable SQLAlchemy
+        # expressions
+        soft_query_constraints = list(query_constraints)
+        for tuple_filter_list, expression_filter_list in [(hard_filters, query_constraints), (soft_filters, soft_query_constraints)]:
+            for key, op, value in tuple_filter_list:
+                try:
+                    apiattr = getapiattr(resource, key)
+                except AttributeError:
+                    raise AttributeError("Class {} has no attribute {}.".format(resource.__name__, key))
+                apiattr.validate(value)
+                value = apiattr._writer(value)
+                if op == ':':
+                    expression_filter_list.append(apiattr.get_class_attr(self.__request__).like(value))
+                elif op == '=':
+                    expression_filter_list.append(apiattr.get_class_attr(self.__request__) == value)
+                elif op == '<':
+                    expression_filter_list.append(apiattr.get_class_attr(self.__request__) < value)
+                elif op == '>':
+                    expression_filter_list.append(apiattr.get_class_attr(self.__request__) > value)
+                elif op == '<=':
+                    expression_filter_list.append(apiattr.get_class_attr(self.__request__) <= value)
+                elif op == '>=':
+                    expression_filter_list.append(apiattr.get_class_attr(self.__request__) >= value)
+                else:
+                    raise ValueError('The operator %r is invalid' % op)
         # sort_by support
         if sort_by:
             target_attr = next((attr for attr in resource.get_api_config()['attrs'] if attr.is_visible(self.__request__) and attr.key == sort_by), None)
@@ -728,8 +745,10 @@ class APICollection(object):
                 # the results by this
                 if isinstance(target_attr_auth, collections.Sequence):
                     query_constraints.extend(target_attr_auth)
+                    soft_query_constraints.extend(target_attr_auth)
                 else:
                     query_constraints.append(target_attr_auth)
+                    soft_query_constraints.append(target_attr_auth)
         else:
             sort_by = resource.primary_key_name()
         # sort_dir support
@@ -747,6 +766,7 @@ class APICollection(object):
             for target in query_target[1:]:
                 self.query = getattr(self.query, 'join')(target)
         self.query_constraints = query_constraints
+        self.soft_query_constraints = soft_query_constraints
         self.query_order_by = query_order_by
         # Save defaults
         self.defaults = defaults
@@ -808,7 +828,7 @@ class APICollection(object):
         auth_function = self.resource.get_api_config('list', 'auth')
         # Get SQLAlchemy constraints to apply based on read-context authorization
         if not auth_function:
-            filters = self.query_constraints
+            filters = self.soft_query_constraints
         else:
             # An auth function could take an auth context, a context and a target
             # that we're authorizing against, or nothing at all. Try to provide the
@@ -823,16 +843,16 @@ class APICollection(object):
 
             if auth_function_out is True:
                 # There is no auth function, or it's passive (returns True)
-                filters = self.query_constraints
+                filters = self.soft_query_constraints
             elif auth_function_out is False:
                 # There is no auth function, or it's passive (returns False)
                 return []
             elif isinstance(auth_function_out, collections.Sequence):
                 # Auth function returned a list or tuple of constraints
-                filters = self.query_constraints + list(auth_function_out)
+                filters = self.soft_query_constraints + list(auth_function_out)
             else:
                 # Auth function returned a single constraint
-                filters = self.query_constraints + [auth_function_out]
+                filters = self.soft_query_constraints + [auth_function_out]
 
         # Return filtered set of items for JSON serialization
         items = self.query.filter(*filters).order_by(self.query_order_by).all()

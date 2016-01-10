@@ -190,6 +190,7 @@ def main(argv=sys.argv):
         info.pop('read')
         info.pop('update')
         info.pop('delete')
+        info.pop('default_filters')
         info.pop('root_accessible')
         for action, directives in info.iteritems():
             if directives:
