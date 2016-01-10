@@ -622,7 +622,7 @@ Session is as follows:
 from sofa import APIResource, APISession, ResourceException
 
 
-class Session(Base, APIResource, APISession):
+class Session(Base, APISession, APIResource):
     __tablename__ = 'sessions'
 
     id = Column(String(32), primary_key=True)

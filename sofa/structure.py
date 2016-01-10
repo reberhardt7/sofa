@@ -892,16 +892,23 @@ class VirtualCollection(object):
 
 
 class APISession(object):
+    active = Column(Boolean, nullable=False, default=True)
+    invalidated_at = Column(DateTime)
+
     @property
     def expires(self):
         return self.updated_at + timedelta(seconds=session_duration())
 
     @property
     def is_valid(self):
-        return self.expires >= datetime.utcnow()
+        return self.active and self.expires >= datetime.utcnow()
 
     def touch(self):
         self.updated_at = datetime.utcnow()
+
+    def delete(self):
+        self.active = False
+        self.invalidated_at = datetime.utcnow()
 
 
 class ContextPredicate(object):
