@@ -179,10 +179,12 @@ class APIAttribute(object):
     def validate(self, value):
         self.validator.validate(value, self)
 
-    def check_authorization(self, request, auth_func=None):
+    def check_authorization(self, request, target=None, auth_func=None):
+        if not target:
+            target = self.cls
+
         if not auth_func:
             auth_func = self.auth
-
         if not auth_func:
             return True
 
@@ -195,7 +197,7 @@ class APIAttribute(object):
         elif len(auth_func_param_names) == 1:
             auth_function_out = exec_function(auth_func, AuthContext(request))
         else:
-            auth_function_out = exec_function(auth_func, AuthContext(request), self.cls)
+            auth_function_out = exec_function(auth_func, AuthContext(request), target)
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of stuff (since the lambdas returns are designed
@@ -207,7 +209,7 @@ class APIAttribute(object):
 
         return auth_function_out
 
-    def is_visible(self, request):
+    def is_visible(self, request, target=None):
         """
         Combines the "readable" attribute with dynamic attribute limitations (i.e.
         if this is a dynamic attribute and not all of its required paramters are
@@ -215,7 +217,7 @@ class APIAttribute(object):
         """
         if not self.readable:
             return False
-        if self.check_authorization(request) is False:
+        if self.check_authorization(request, target=target) is False:
             return False
         for param in self.dynamic_params:
             if param['name'] not in request.GET:
