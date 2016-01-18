@@ -32,7 +32,7 @@ class Root(object):
                     raise ResourceException(400, 'bad_query',
                         'The query string in the GET parameter is malformed. '
                         'Colon or equal signs must be escaped.')
-                filters.append((k, op, v))
+                filters.append((k, op, v.replace('\\=', '=').replace('\\:', ':').replace('\\<', '<').replace('\\>', '>')))
 
             # Support sort_by and sort_dir GET params
             sort_by = self.request.GET.get('sort_by', None)
