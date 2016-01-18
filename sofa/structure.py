@@ -305,6 +305,30 @@ class SofaType(object):
 #             # This must be an APIResource class
 #             cls.resources.append(cls)
 
+def remove_circular_references(response_dict, refs, request, depth=0):
+    MAX_FOLLOW_DEPTH = 4
+    refs_orig = refs
+    for k in response_dict.keys():
+        refs = refs_orig
+        if isinstance(response_dict[k], APIResource):
+            if response_dict[k] in refs or depth >= MAX_FOLLOW_DEPTH:
+                response_dict.pop(k)
+                continue
+            else:
+                refs = refs + [response_dict[k]]
+                response_dict[k] = response_dict[k].__json__(request, remove_circular_refs=False) 
+        if isinstance(response_dict[k], dict):
+            response_dict[k] = remove_circular_references(response_dict[k], refs, request, depth=depth+1)
+        elif isinstance(response_dict[k], list):
+            response_dict[k] = list(response_dict[k])
+            for i in range(len(response_dict[k])):
+                if response_dict[k][i] in refs or depth >= MAX_FOLLOW_DEPTH:
+                    response_dict.pop(k)
+                    continue
+                elif isinstance(response_dict[k][i], APIResource):
+                    response_dict[k][i] = remove_circular_references(response_dict[k][i].__json__(request, remove_circular_refs=False), refs + [response_dict[k][i]], request, depth=depth+1)
+    return response_dict
+
 
 class APIResource(object):
 
@@ -443,7 +467,7 @@ class APIResource(object):
         log.debug("Created {} {}".format(cls.__name__, obj))
         return obj
 
-    def __json__(self, request):
+    def __json__(self, request, remove_circular_refs=True):
         """
         Creates and returns a dictionary with all keys and values of this resource's
         public attributes, for rendering to JSON (used in GET requests)
@@ -456,10 +480,11 @@ class APIResource(object):
                                       reader=lambda x: x.strftime("%Y-%m-%dT%H:%M:%SZ") if x
                                                        else None,
                                       cls=self.__class__)]
-        return { attr.key:attr.read(self) for attr
-                                          in default_attrs + self.get_api_config('attrs')
-                                          if attr.is_visible(self.__request__)
-                                          and self.check_authorization(self.__request__, attr.auth, raise_exc=False) }
+        to_return = { attr.key:attr.read(self) for attr
+                                               in default_attrs + self.get_api_config('attrs')
+                                               if attr.is_visible(self.__request__)
+                                               and self.check_authorization(self.__request__, attr.auth, raise_exc=False) }
+        return remove_circular_references(to_return, [self], request) if remove_circular_refs else to_return
 
     def __getitem__(self, key):
         log.info('Getting key {} on {}...'.format(key, self))
@@ -572,10 +597,11 @@ class VirtualResource(APIResource, VirtualResourceRegistry):
     def primary_key_name(cls):
         return 'id'
 
-    def __json__(self, request):
-        return { attr.key:attr.read(self) for attr
-                                          in self.get_api_config('attrs')
-                                          if attr.is_visible(self.__request__) }
+    def __json__(self, request, remove_circular_refs=True):
+        to_return = { attr.key:attr.read(self) for attr
+                                               in self.get_api_config('attrs')
+                                               if attr.is_visible(self.__request__) }
+        return remove_circular_references(to_return, [self], request) if remove_circular_references else to_return
 
 
 class APICollection(object):
