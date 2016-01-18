@@ -125,9 +125,9 @@ class APIAttribute(object):
         if self.dynamic_params:
             # This is a dynamic attribute, and we need to pass the "attribute"
             # the appropriate parameters in order to get a value
-            return self._reader(getattr(instance, self.key)(**{p['name']: instance.__request__.GET.get(p['name'], None) for p in self.dynamic_params}))
+            return exec_function(self._reader, getattr(instance, self.key)(**{p['name']: instance.__request__.GET.get(p['name'], None) for p in self.dynamic_params}))
         else:
-            return self._reader(getattr(instance, self.key))
+            return exec_function(self._reader, getattr(instance, self.key))
 
     @staticmethod
     def _reader(value):
@@ -157,10 +157,10 @@ class APIAttribute(object):
         target = resource_class.__getattribute__(resource_class, self.key)
         # If that target class variable is a descriptor, use its __set__ to update the value
         if hasattr(target, '__set__'):
-            target.__set__(instance, self._writer(value))
+            target.__set__(instance, exec_function(self._writer, value))
         # Otherwise, just change the value
         else:
-            setattr(instance, self.key, self._writer(value))
+            setattr(instance, self.key, exec_function(self._writer, value))
 
     @staticmethod
     def _writer(value):
@@ -716,7 +716,7 @@ class APICollection(object):
                 except AttributeError:
                     raise AttributeError("Class {} has no attribute {}.".format(resource.__name__, key))
                 apiattr.validate(value)
-                value = apiattr._writer(value)
+                value = exec_function(apiattr._writer, value)
                 if op == ':':
                     expression_filter_list.append(apiattr.get_class_attr(self.__request__).like(value))
                 elif op == '=':
