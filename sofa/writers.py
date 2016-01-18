@@ -2,6 +2,7 @@
 Contains common writer functions for converting information received via the
 API into a format for database storage.
 """
+from datetime import datetime
 
 def boolean_writer(value):
 	if str(value).lower() in ['true', '1']:
