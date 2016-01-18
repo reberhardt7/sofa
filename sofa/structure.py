@@ -326,7 +326,7 @@ def remove_circular_references(response_dict, refs, request, depth=0):
             for i in range(len(response_dict[k])):
                 if response_dict[k][i] in refs or depth >= MAX_FOLLOW_DEPTH:
                     response_dict.pop(k)
-                    continue
+                    break
                 elif isinstance(response_dict[k][i], APIResource):
                     response_dict[k][i] = remove_circular_references(response_dict[k][i].__json__(request, remove_circular_refs=False), refs + [response_dict[k][i]], request, depth=depth+1)
     return response_dict
