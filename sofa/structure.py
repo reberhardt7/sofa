@@ -484,7 +484,7 @@ class APIResource(object):
                                       cls=self.__class__)]
         to_return = { attr.key:attr.read(self) for attr
                                                in default_attrs + self.get_api_config('attrs')
-                                               if attr.is_visible(self.__request__)
+                                               if attr.is_visible(self.__request__, target=self)
                                                and self.check_authorization(self.__request__, attr.auth, raise_exc=False) }
         return remove_circular_references(to_return, [self], request) if remove_circular_refs else to_return
 
