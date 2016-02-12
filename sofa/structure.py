@@ -355,10 +355,8 @@ class APIResource(object):
 
     @classmethod
     def get_api_config(cls, *args):
-        log.debug('Getting API config for {} at {}'.format(cls, args))
         target = api_config()[cls.__name__]
         for key in args:
-            log.debug('Recursing into {}...'.format(key))
             if target is None:
                 raise KeyError('Cannot get {} from target None'.format(key))
             target = target[key]
