@@ -125,9 +125,9 @@ class APIAttribute(object):
         if self.dynamic_params:
             # This is a dynamic attribute, and we need to pass the "attribute"
             # the appropriate parameters in order to get a value
-            return exec_function(self._reader, getattr(instance, self.key)(**{p['name']: instance.__request__.GET.get(p['name'], None) for p in self.dynamic_params}))
+            return exec_function(self._reader)(getattr(instance, self.key)(**{p['name']: instance.__request__.GET.get(p['name'], None) for p in self.dynamic_params}))
         else:
-            return exec_function(self._reader, getattr(instance, self.key))
+            return exec_function(self._reader)(getattr(instance, self.key))
 
     @staticmethod
     def _reader(value):
@@ -157,10 +157,10 @@ class APIAttribute(object):
         target = resource_class.__getattribute__(resource_class, self.key)
         # If that target class variable is a descriptor, use its __set__ to update the value
         if hasattr(target, '__set__'):
-            target.__set__(instance, exec_function(self._writer, value))
+            target.__set__(instance, exec_function(self._writer)(value))
         # Otherwise, just change the value
         else:
-            setattr(instance, self.key, exec_function(self._writer, value))
+            setattr(instance, self.key, exec_function(self._writer)(value))
 
     @staticmethod
     def _writer(value):
@@ -195,9 +195,9 @@ class APIAttribute(object):
         if not auth_func_param_names:
             auth_function_out = exec_function(auth_func)
         elif len(auth_func_param_names) == 1:
-            auth_function_out = exec_function(auth_func, AuthContext(request))
+            auth_function_out = exec_function(auth_func)(AuthContext(request))
         else:
-            auth_function_out = exec_function(auth_func, AuthContext(request), target)
+            auth_function_out = exec_function(auth_func)(AuthContext(request), target)
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of stuff (since the lambdas returns are designed
@@ -267,12 +267,12 @@ class APIValidator(object):
     # freak out (because strings obviously aren't callable)
     def _exec_validator(self, value, attr):
         try:
-            exec_function(object.__getattribute__(self, 'validate'), value, attr)
+            exec_function(object.__getattribute__(self, 'validate'))(value, attr)
         except TypeError, e:
             if 'takes exactly' in e:
                 # This might be a quick-and-dirty validator function that
                 # doesn't care for `attr`
-                exec_function(object.__getattribute__(self, 'validate'), value)
+                exec_function(object.__getattribute__(self, 'validate'))(value)
             else:
                 raise
 
@@ -378,9 +378,9 @@ class APIResource(object):
         if not auth_func_param_names:
             auth_function_out = exec_function(auth_func)
         elif len(auth_func_param_names) == 1:
-            auth_function_out = exec_function(auth_func, AuthContext(request))
+            auth_function_out = exec_function(auth_func)(AuthContext(request))
         else:
-            auth_function_out = exec_function(auth_func, AuthContext(request), self)
+            auth_function_out = exec_function(auth_func)(AuthContext(request), self)
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of booleans (since the lambdas returns are designed
@@ -742,7 +742,7 @@ class APICollection(object):
                 except AttributeError:
                     raise AttributeError("Class {} has no attribute {}.".format(resource.__name__, key))
                 apiattr.validate(value)
-                value = exec_function(apiattr._writer, value)
+                value = exec_function(apiattr._writer)(value)
                 if op == ':':
                     expression_filter_list.append(apiattr.get_class_attr(self.__request__).like(value))
                 elif op == '=':
@@ -863,9 +863,9 @@ class APICollection(object):
             if not auth_func_param_names:
                 auth_function_out = exec_function(auth_function)
             elif len(auth_func_param_names) == 1:
-                auth_function_out = exec_function(auth_function, AuthContext(request))
+                auth_function_out = exec_function(auth_function)(AuthContext(request))
             else:
-                auth_function_out = exec_function(auth_function, AuthContext(request), self.resource)
+                auth_function_out = exec_function(auth_function)(AuthContext(request), self.resource)
 
             if auth_function_out is True:
                 # There is no auth function, or it's passive (returns True)
@@ -899,7 +899,7 @@ class APICollection(object):
         if not auth_func_param_names:
             auth_function_out = exec_function(auth_func)
         else:
-            auth_function_out = exec_function(auth_func, AuthContext(request))
+            auth_function_out = exec_function(auth_func)(AuthContext(request))
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of booleans (since the lambdas returns are designed
