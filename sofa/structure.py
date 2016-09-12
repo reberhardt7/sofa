@@ -34,6 +34,15 @@ import logging
 log = logging.getLogger(__name__)
 
 
+def get_auth_context(request):
+    """Generates an AuthContext or returns a cached AuthContext"""
+    try:
+        return request.sofa_auth_context
+    except AttributeError:
+        request.sofa_auth_context = AuthContext(request)
+        return request.sofa_auth_context
+
+
 class APIAttribute(object):
     def __init__(self, key, _type=None, validator=None, readable=True, reader=None,
                  writable=True, writer=None, auth=None, cls=None, dynamic_params=[]):
@@ -195,9 +204,9 @@ class APIAttribute(object):
         if not auth_func_param_names:
             auth_function_out = exec_function(auth_func)
         elif len(auth_func_param_names) == 1:
-            auth_function_out = exec_function(auth_func)(AuthContext(request))
+            auth_function_out = exec_function(auth_func)(get_auth_context(request))
         else:
-            auth_function_out = exec_function(auth_func)(AuthContext(request), target)
+            auth_function_out = exec_function(auth_func)(get_auth_context(request), target)
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of stuff (since the lambdas returns are designed
@@ -209,12 +218,7 @@ class APIAttribute(object):
 
         return auth_function_out
 
-    def is_visible(self, request, target=None):
-        """
-        Combines the "readable" attribute with dynamic attribute limitations (i.e.
-        if this is a dynamic attribute and not all of its required paramters are
-        specified in the request, this attribute cannot be displayed)
-        """
+    def _determine_visibility(self, request, target=None):
         if not self.readable:
             return False
         if self.check_authorization(request, target=target) is False:
@@ -224,6 +228,23 @@ class APIAttribute(object):
                 return False
             param['validator'].validate(request.GET[param['name']], APIAttribute(param['name'], cls=self.cls))
         return True
+
+    def is_visible(self, request, target=None):
+        """
+        Combines the "readable" attribute with dynamic attribute limitations (i.e.
+        if this is a dynamic attribute and not all of its required paramters are
+        specified in the request, this attribute cannot be displayed)
+        """
+        cache = getattr(request, "sofa_visibility_cache", None)
+        if not cache:
+            request.sofa_visibility_cache = {}
+            cache = getattr(request, "sofa_visibility_cache", None)
+        if (id(self), id(request), target) in cache:
+            return cache[(id(self), id(request), target)]
+        else:
+            cache[(id(self), id(request), target)] = \
+                    self._determine_visibility(request, target)
+            return cache[(id(self), id(request), target)]
 
 
 class APIValidator(object):
@@ -378,9 +399,9 @@ class APIResource(object):
         if not auth_func_param_names:
             auth_function_out = exec_function(auth_func)
         elif len(auth_func_param_names) == 1:
-            auth_function_out = exec_function(auth_func)(AuthContext(request))
+            auth_function_out = exec_function(auth_func)(get_auth_context(request))
         else:
-            auth_function_out = exec_function(auth_func)(AuthContext(request), self)
+            auth_function_out = exec_function(auth_func)(get_auth_context(request), self)
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of booleans (since the lambdas returns are designed
@@ -863,9 +884,9 @@ class APICollection(object):
             if not auth_func_param_names:
                 auth_function_out = exec_function(auth_function)
             elif len(auth_func_param_names) == 1:
-                auth_function_out = exec_function(auth_function)(AuthContext(request))
+                auth_function_out = exec_function(auth_function)(get_auth_context(request))
             else:
-                auth_function_out = exec_function(auth_function)(AuthContext(request), self.resource)
+                auth_function_out = exec_function(auth_function)(get_auth_context(request), self.resource)
 
             if auth_function_out is True:
                 # There is no auth function, or it's passive (returns True)
@@ -899,7 +920,7 @@ class APICollection(object):
         if not auth_func_param_names:
             auth_function_out = exec_function(auth_func)
         else:
-            auth_function_out = exec_function(auth_func)(AuthContext(request))
+            auth_function_out = exec_function(auth_func)(get_auth_context(request))
 
         if isinstance(auth_function_out, collections.Sequence):
             # We got a list of booleans (since the lambdas returns are designed
